@@ -136,7 +136,7 @@ Nb_universe=((artnetESP32V2 *)pvParameters)->nbNeededUniverses;
                offset2=offset+currenbt_uni*(((artnetESP32V2 *)pvParameters)->nbPixelsPerUniverse) * 3;
                  memcpy(offset2,(uint8_t *)e->pb->payload+ART_DMX_START,((artnetESP32V2 *)pvParameters)->nbPixelsPerUniverse * 3);
             #else
-                offset2=offset+currenbt_uni*512;
+                offset2=offset+currenbt_uni*((artnetESP32V2 *)pvParameters)->nbPixelsPerUniverse;
                  memcpy(offset2,(uint8_t *)e->pb->payload+ART_DMX_START,e->pb->len-ART_DMX_START);
             #endif
               //Serial.printf("%d \n",currenbt_uni);
