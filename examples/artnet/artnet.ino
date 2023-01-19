@@ -29,10 +29,10 @@ Serial.begin(2000000);
 udp.beginByLed(NUM_LEDS_PER_STRIP*NUMSTRIPS,170,0); //here we declare NUM_LEDS_PER_STRIP*NUMSTRIPS led with artnet universe size of 170 leds
 
 //the following line is the same
-//udp.beginByLed(NUM_LEDS_PER_STRIP*NUMSTRIPS*3,510,0); here we declare NUM_LEDS_PER_STRIP*NUMSTRIPS*3 channels (because RBG is coded 3 channels) with artnet universe size of 510 channels
+//udp.beginByChannel(NUM_LEDS_PER_STRIP*NUMSTRIPS*3,510,0); here we declare NUM_LEDS_PER_STRIP*NUMSTRIPS*3 channels (because RBG is coded 3 channels) with artnet universe size of 510 channels
 
 //if your artnet program uses all the artnet size
-//udp.beginByLed(NUM_LEDS_PER_STRIP*NUMSTRIPS*3,512,0)
+//udp.beginByChannel(NUM_LEDS_PER_STRIP*NUMSTRIPS*3,512,0)
 
      // leds=alleds.getPixels();
    driver.initled(leds,pins,NUMSTRIPS,NUM_LEDS_PER_STRIP);
