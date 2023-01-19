@@ -16,7 +16,7 @@ const char * password = "***";
 
 int pins[16]={2,4,5,12,13,14,15,17,16,19,21,22,23,25,26};
 
-artnetESP32V2 artnet=artnetESP32V2(48*123,170,0);
+artnetESP32V2 artnet=artnetESP32V2();
 I2SClocklessLedDriver driver;
   void displayfunction(){
 
@@ -26,6 +26,13 @@ I2SClocklessLedDriver driver;
 void setup() {
   // put your setup code here, to run once:
 Serial.begin(2000000);
+udp.beginByLed(NUM_LEDS_PER_STRIP*NUMSTRIPS,170,0); //here we declare NUM_LEDS_PER_STRIP*NUMSTRIPS led with artnet universe size of 170 leds
+
+//the following line is the same
+//udp.beginByLed(NUM_LEDS_PER_STRIP*NUMSTRIPS*3,510,0); here we declare NUM_LEDS_PER_STRIP*NUMSTRIPS*3 channels (because RBG is coded 3 channels) with artnet universe size of 510 channels
+
+//if your artnet program uses all the artnet size
+//udp.beginByLed(NUM_LEDS_PER_STRIP*NUMSTRIPS*3,512,0)
 
      // leds=alleds.getPixels();
    driver.initled(leds,pins,NUMSTRIPS,NUM_LEDS_PER_STRIP);
