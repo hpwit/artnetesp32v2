@@ -37,8 +37,9 @@ class artnetESP32V2 //: public Print
     uint8_t *artnetleds1, *buffer2;
     uint8_t  *buffers[2];
       uint8_t currentframenumber;
+    
       uint8_t *currentframe;
-    int pixels_per_universe,nbPixels,nbPixelsPerUniverse,nbNeededUniverses,startuniverse,nbframes,nbframeslost;
+    int pixels_per_universe,nbPixels,nbPixelsPerUniverse,nbNeededUniverses,startuniverse,enduniverse,nbframes,nbframeslost;
         artnetESP32V2();
          ~artnetESP32V2();
     void beginByLed(uint16_t nbpixels, uint16_t nbpixelsperuniverses,int startunivers);
