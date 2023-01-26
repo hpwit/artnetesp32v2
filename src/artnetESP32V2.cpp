@@ -138,7 +138,7 @@ lastUniverse=artnet->enduniverse;
 
               //Serial.printf("%d\n",(e& 0xff00)>>8);
 //#define TOTO
-
+#define NB_FRAMES_DELTA 1000
 #ifdef TOTO            
               //  Serial.printf("size %d\n",e->pb->len);
               currenbt_uni =e->universe;
@@ -228,7 +228,7 @@ lastUniverse=artnet->enduniverse;
                 
                
             frame_disp=false;
-                previous_uni =0;
+                previous_uni =startUniverse;
                  offset2=offset;
                  memcpy(offset2,(uint8_t *)e->pb->payload+ART_DMX_START,artnet->nbPixelsPerUniverse);
             }
@@ -257,13 +257,13 @@ lastUniverse=artnet->enduniverse;
                             (*((artnetESP32V2 *)pvParameters)->frameCallback)();
                             artnet->currentframenumber= (artnet->currentframenumber+1)%2;
                             offset=artnet->buffers[ artnet->currentframenumber];
-                        if((nb_frames)%100==0)
+                        if((nb_frames)%NB_FRAMES_DELTA==0)
                             {
-                                //time2=millis();
+                                time2=millis();
                                 //Serial.printf("frame %d lost %d %.2f in %.2fs or %.2f fps\n",nb_frames,nb_frames_lost,(float)(100*nb_frames_lost)/(nb_frames_lost+nb_frames),(float)(time2-time1)/1000,(float)(1000*1000/(time2-time1)));
                                 //Serial.printf("frame %d lost %d %.2f \n",artnet->nbframes,artnet->nbframeslost,(float)(100*artnet->nbframeslost)/(artnet->nbframeslost+artnet->nbframes));
-                                Serial.printf("frame received %d lost %d %.2f  \n",nb_frames,nb_frames_lost-1,(float)(100* nb_frames_lost-1)/(nb_frames_lost+nb_frames-1));
-                            // time1=time2;
+                                 ESP_LOGI("ARTNETESP32","frames fully received:%d frames lost:%d  percentage lost:%.2f  fps: %.2f \n",nb_frames,nb_frames_lost-1,(float)(100* (nb_frames_lost-1))/(nb_frames_lost+nb_frames-1),(float)(1000*NB_FRAMES_DELTA/(time2-time1)));
+                             time1=time2;
                             }
                         }
                     }
@@ -367,7 +367,7 @@ if(!_udp_task_post(this_pb)){
 }
 
 
-void artnetESP32V2::beginByChannel(uint16_t nbchannels, uint16_t nbchannelsperuniverses,int startunivers)
+void artnetESP32V2::beginByChannel(uint32_t nbchannels, uint32_t nbchannelsperuniverses,int startunivers)
  {
   _pcb = NULL;
     _connected = false;
@@ -378,30 +378,33 @@ void artnetESP32V2::beginByChannel(uint16_t nbchannels, uint16_t nbchannelsperun
        nbPixels = nbchannels;
     nbPixelsPerUniverse = nbchannelsperuniverses;
     nbNeededUniverses = nbchannels / nbPixelsPerUniverse;
-    if (nbNeededUniverses * nbPixelsPerUniverse - nbchannels < 0)
+     ESP_LOGI("ARTNETESP32","universes %d",nbNeededUniverses);
+    if (nbNeededUniverses * nbPixelsPerUniverse <nbchannels )
     {
 
         nbNeededUniverses++;
     }
     enduniverse=startunivers+nbNeededUniverses;
+      
+     ESP_LOGI("ARTNETESP32","universes %d %d \n",nbchannels,  nbNeededUniverses);
     //artnetleds1= (uint8_t *)malloc(nbpixels*buffernumber*3);
-    buffers[0] = (uint8_t *)malloc((nbchannelsperuniverses  + ART_DMX_START) * nbNeededUniverses  + 8 + BUFFER_SIZE);
+    buffers[0] = (uint8_t *)malloc((nbchannelsperuniverses  + ART_DMX_START) * nbNeededUniverses   + BUFFER_SIZE);
     if ( buffers[0] == NULL)
     {
-        Serial.printf("impossible to create the buffer\n");
+        Serial.printf("impossible to create the buffer 1\n");
         return;
     }
-    buffers[1] = (uint8_t *)malloc((nbchannelsperuniverses  + ART_DMX_START) * nbNeededUniverses  + 8 + BUFFER_SIZE);
+    buffers[1] = (uint8_t *)malloc((nbchannelsperuniverses  + ART_DMX_START) * nbNeededUniverses   + BUFFER_SIZE);
     if (buffers[1] == NULL)
     {
-        Serial.printf("impossible to create the buffer\n");
+        Serial.printf("impossible to create the buffer 2\n");
         return;
     }
     Serial.printf("Starting Artnet nbNee sdedUniverses:%d\n", nbNeededUniverses);
     currentframenumber=0;
  }
 
-void artnetESP32V2::beginByLed(uint16_t nbpixels, uint16_t nbpixelsperuniverses,int startunivers)
+void artnetESP32V2::beginByLed(uint16_t nbpixels, uint32_t nbpixelsperuniverses,int startunivers)
 {
       _pcb = NULL;
     _connected = false;
@@ -412,23 +415,24 @@ void artnetESP32V2::beginByLed(uint16_t nbpixels, uint16_t nbpixelsperuniverses,
        nbPixels = nbpixels;
     nbPixelsPerUniverse = nbpixelsperuniverses*3;
     nbNeededUniverses = (nbPixels *3) / nbPixelsPerUniverse;
-    if (nbNeededUniverses * nbPixelsPerUniverse - nbPixels*3 < 0)
+    if (nbNeededUniverses * nbPixelsPerUniverse < nbPixels*3 )
     {
 
         nbNeededUniverses++;
     }
         enduniverse=startunivers+nbNeededUniverses;
     //artnetleds1= (uint8_t *)malloc(nbpixels*buffernumber*3);
+    ESP_LOGI("ARTNETESP32","universes %d \n",nbNeededUniverses);
     buffers[0] = (uint8_t *)malloc((nbpixelsperuniverses * 3 + ART_DMX_START) * nbNeededUniverses  + 8 + BUFFER_SIZE);
     if ( buffers[0] == NULL)
     {
-        Serial.printf("impossible to create the buffer\n");
+        Serial.printf("impossible to create the buffer 1\n");
         return;
     }
     buffers[1] = (uint8_t *)malloc((nbpixelsperuniverses * 3 + ART_DMX_START) * nbNeededUniverses  + 8 + BUFFER_SIZE);
     if (buffers[1] == NULL)
     {
-        Serial.printf("impossible to create the buffer\n");
+        Serial.printf("impossible to create the buffer 2\n");
         return;
     }
     Serial.printf("Starting Artnet nbNee sdedUniverses:%d\n", nbNeededUniverses);

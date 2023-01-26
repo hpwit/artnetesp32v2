@@ -39,11 +39,11 @@ class artnetESP32V2 //: public Print
       uint8_t currentframenumber;
     
       uint8_t *currentframe;
-    int pixels_per_universe,nbPixels,nbPixelsPerUniverse,nbNeededUniverses,startuniverse,enduniverse,nbframes,nbframeslost;
+    uint32_t pixels_per_universe,nbPixels,nbPixelsPerUniverse,nbNeededUniverses,startuniverse,enduniverse,nbframes,nbframeslost;
         artnetESP32V2();
          ~artnetESP32V2();
-    void beginByLed(uint16_t nbpixels, uint16_t nbpixelsperuniverses,int startunivers);
-    void beginByChannel(uint16_t nbchannels, uint16_t nbchannelsperuniverses,int startunivers);
+    void beginByLed(uint16_t nbpixels, uint32_t nbpixelsperuniverses,int startunivers);
+    void beginByChannel(uint32_t nbchannels, uint32_t nbchannelsperuniverses,int startunivers);
     bool listen(const ip_addr_t *addr, uint16_t port);
     bool listen(const IPAddress addr, uint16_t port);
     bool listen(const IPv6Address addr, uint16_t port);
