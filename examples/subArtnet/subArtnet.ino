@@ -6,8 +6,8 @@
 
 
 
-const char * ssid = "DomainePutterie1";
-const char * password = "Jeremyyves1";
+const char * ssid = "****";
+const char * password = "****";
 
 
 artnetESP32V2 artnet=artnetESP32V2();
