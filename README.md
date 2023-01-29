@@ -111,11 +111,9 @@ if you  do this
 See the example `subArtnet.ino`
 
 
-## you have one example
-for the moment one example with the ClocklessLedDriver.h to use the virtual pin driver just the declaration of your led driver changes all the rest stay the same
 
 ### ethernet
 Several persons want to use ethernet, the library works with ethernet. A user has managed to get good results limiting to 10Mbps the esp32
 
-## How can you help
+### How can you help
 Please do try this library try break it and let mn know I am always interested when my code is used
