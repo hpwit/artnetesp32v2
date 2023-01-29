@@ -1,11 +1,22 @@
-# artnetesp32v2 new version of the artnet library
+## artnetesp32v2 new version of the artnetesp32 library
 Here is a new take on the artnet library the code is still in its infancy
 
-The code is quite not that clean yet but I can drive 35 unvierses at 30+ fps with a 1% loss.
+The code is quite not that clean yet but I can drive 35 unvierses at 40+ fps with less than 1% loss.
+
+This version philosphy is a bit different than the ArtnetESP32 library. 
+There is a concept of subArtnets which are the recipients of the universes . The main class is a listener that will 'forward' the universe to subArtnet.
+OK maybe it's not that clear let's get into it.
+
+I suggest you read [https://github.com/hpwit/artnetESP32/blob/master/README.md] for consideration about using artnet
+
+## Prerequisites
+Here are what I use in my tests
+
+* If you want to use artnet to display leds, this library requires the usage of [https://github.com/hpwit/I2SClocklessLedDriver] or [https://github.com/hpwit/I2SClocklessVirtualLedDriver] the latest library is in the case if you use the virtual pins for best results. I haven't fully tester it with FastLED
+* Compiled with arduino with 2.0.6 core library
+* board choosen DevModule (esp32) not (Arduino because it does not link the netif library)
 
 
-## prerequisites
-This library requires the usage of [https://github.com/hpwit/I2SClocklessLedDriver] or [https://github.com/hpwit/I2SClocklessVirtualLedDriver] the latest library is in the case if you use the virtual pins.
 
 ## Declaration
 
@@ -20,7 +31,7 @@ This library requires the usage of [https://github.com/hpwit/I2SClocklessLedDriv
 
 Nothing really special :)
 
-## to start to listen to artnet packet ` void beginByLed(uint16_t nbpixels, uint16_t nbpixelsperuniverses,int startunivers);`
+### to start to listen to artnet packet `bool artnet.listen(int port)`
  Start the artnet by declaring the number of leds needed and the size per universe  
 ```C
 #define NUMBER_OF_LEDS 5000
@@ -31,50 +42,68 @@ Nothing really special :)
  artnetESP32V2 artnet=artnetESP32V2();
 
  ...
-artnet.beginByLed(NUMBER_OF_LEDS * 3,NB_CHANNEL_PER_UNIVERSE,START_UNIVERSE);
+if(artnet.listen(6454)) {
+   Serial.print("artnet Listening\n");
+}
  ```
 
-## to start to listen to artnet packet   `void beginByChannelbeginByChannel(uint16_t nbchannels, uint16_t nbchannelsperuniverses,int startunivers);`
-some artnet software do not send X leds per universe but the full 512 channels. Hence a led is split between two universes. to deal with that:
- ```C
-#define NUMBER_OF_LEDS 5000
-#define NB_CHANNEL_PER_UNIVERSE 512
+### let's start the fun
+Now that we listen to artnet universes we need to store the information somewhere :)
+We need to define a reciever fort theses artnet universes : a subArtnet (maybe not the best name  :) )
+`addSubArtnet(int star_universe,uint32_t size,uint32_t nb_data_per_universe,void (*fptr)(subArtnet *subartnet))`
+* `star_universe` : the first universe to be recieved
+* `size` : the size in bytes of waht you want to get for RGB leds this will be `NUM_LEDS * 3`
+* `nb_data_per_universe` : the size of on universe in bytes (or channels) for most softwares this is 510 (170 * 3) bur there is a brazilian software that uses all 512 bytes (channels) of the artnet universes
+* `callback` function : this is the function that will be called once all the universes of one subartnet have been gathered. the callback function as the subartnet as input and should be declared like this 'void callback(subArtnet *subartnet)
+
+### main example only only subartnet for all the universes 
+This is what most people will use to display artnet animations
+
+```C
+
+#define NUM_LEDS_PER_STRIP 369
+#define NUMSTRIPS 16
+#define NB_CHANNEL_PER_LED 3 //Should be 4 if your sending tool is sending RGBW
+#define UNIVERSE_SIZE_IN_CHANNEL  (170 * 3)  //here we define a universe of 170 pixels each pixel is composed of 3 channels
 #define START_UNIVERSE 0
+ artnetESP32V2 artnet=artnetESP32V2();
 
-#include "artnetesp32v2.h"
+ void displayfunction(subArtnet *subartnet){
 
- artnetESP32V2 artnet=artnetESP32V2() 
+     driver.showPixels(NO_WAIT,subartnet->data);
+} 
 
  ....
 
- artnet.beginByChannel(NUMBER_OF_LEDS * 3,NB_CHANNEL_PER_UNIVERSE,START_UNIVERSE);
+artnet.addSubArtnet(START_UNIVERSE ,NUM_LEDS_PER_STRIP * NUMSTRIPS * NB_CHANNEL_PER_LED,UNIVERSE_SIZE_IN_CHANNEL ,&displayfunction);
+
  ```
-## to start to listen to artnet packet `listen(int port_number)`
 
+Please see the example `artnetdisplay.ino` which will be what most of you will do
+
+### What happens if two frames arrives to fast
+  I have notice that even at 30 fps (1 frame every 33ms) and a refresh rate of my build of 90fps(11ms per frame) sometimes two frames arrive in less than that delay. In that case the `showPixels` will wait the the current frame to be displayed before showing the next one
+
+### You can declare several subartnet
+What the use of this ? Well if you want to do some artnet=>DMX and if you're not sending everytime all the universes
+if you  do this
  ```C
- artnetESP32V2 artnet=artnetESP32V2()
+    // to transmit 600bytes , 2 universes of 510 bytes are needed
+    //this subartnet will trigger when universes 0 and 1 will be recieved
+    artnet.addSubArtnet(0 ,600,UNIVERSE_SIZE_IN_CHANNEL,&callbackfunction );  
+    
+    //to transmit 3500 bytes , 7 universes aof 510 bytes re needed
+    //this subartnet will trigger when universes 2,3,4,5,6,7,8  will be recieved as we start with universe 2
+     artnet.addSubArtnet(2,3500,UNIVERSE_SIZE_IN_CHANNEL,&callbackfunction );
  
- ...
+    //to transmit 2500 bytes , 5 universes of 510 bytes are needed
+    //this subartnet will trigger when universes 20,21,22,23,24 will be recieved as we start with universe 20
+     artnet.addSubArtnet(20,2500,UNIVERSE_SIZE_IN_CHANNEL,&callbackfunction_2);
 
-artnet.beginByLed(NUMBER_OF_LEDS,NB_LEDS_PER_UNIVERSE,START_UNIVERSE);
- if(artnet.listen(6454)) {
-        Serial.print("Arnet Listening ....\n");
- }
+    //NB:  every universe not in those  subarnet will not be used
   ```
 
-## The callback function `void setFrameCallback(void (*fptr)())`
-
-## to display your leds we do not wait ...
-In the callback function you can display the leds. the `NO_WAIT` option part of the Clockless driver (virtual pins or not), will allow you to display the led without being a blocking process
- ```C
-I2SClocklessLedDriver driver;
-  void displayfunction(){
-
-     driver.showPixels(NO_WAIT,artnet.getframe());
-}
- ```
- ### What happens if two frames arrives to fast
-  I have notice that even at 30 fps (1 frame every 33ms) and a refresh rate of my build of 90fps(11ms per frame) sometimes two frames arrive in less than that delay. In that case the `showPixels` will wait the the current frame to be displayed before showing the next one
+See the example `subArtnet.ino`
 
 
 ## you have one example
@@ -84,4 +113,4 @@ for the moment one example with the ClocklessLedDriver.h to use the virtual pin 
 Several persons want to use ethernet, the library works with ethernet. A user has managed to get good results limiting to 10Mbps the esp32
 
 ## How can you help
-Please do try this library try break it and let mn know I am always intersted when my code is used
+Please do try this library try break it and let mn know I am always interested when my code is used
