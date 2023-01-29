@@ -16,6 +16,10 @@ Here are what I use in my tests
 * Compiled with arduino with 2.0.6 core library
 * board choosen DevModule (esp32) not (Arduino because it does not link the netif library)
 
+## Other stuff
+   * If you want to get some stat please activate the info debug level 'Tools>Core Debug Level>>Info'
+   * Have some fun !!
+   * do not hesitate to contact me if any question and please let me know about your builds with my libraires
 
 
 ## Declaration
