@@ -20,6 +20,8 @@ Here are what I use in my tests
    * If you want to get some stat please activate the info debug level 'Tools>Core Debug Level>>Info'
    * Have some fun !!
    * do not hesitate to contact me if any question and please let me know about your builds with my libraires
+   * The code is not super clean yet so please be indulgent
+   * I have tried to test as much as I can with my panel [https://www.youtube.com/watch?v=CmE4naL7m_8]
 
 
 ## Declaration
@@ -53,7 +55,7 @@ if(artnet.listen(6454)) {
 
 ### let's start the fun
 Now that we listen to artnet universes we need to store the information somewhere :)
-We need to define a reciever fort theses artnet universes : a subArtnet (maybe not the best name  :) )
+We need to define a reciever for theses artnet universes : a subArtnet (maybe not the best name  :) )
 `addSubArtnet(int star_universe,uint32_t size,uint32_t nb_data_per_universe,void (*fptr)(subArtnet *subartnet))`
 * `star_universe` : the first universe to be recieved
 * `size` : the size in bytes of waht you want to get for RGB leds this will be `NUM_LEDS * 3`
