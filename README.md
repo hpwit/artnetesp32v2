@@ -37,8 +37,7 @@ Here are what I use in my tests
 
 Nothing really special :)
 
-### to start to listen to artnet packet `bool artnet.listen(int port)`
- Start the artnet by declaring the number of leds needed and the size per universe  
+#### to start to listen to artnet packet `bool artnet.listen(int port)`
 ```C
 #define NUMBER_OF_LEDS 5000
 #define NB_LEDS_PER_UNIVERSE 170
@@ -62,7 +61,7 @@ We need to define a reciever for theses artnet universes : a subArtnet (maybe no
 * `nb_data_per_universe` : the size of on universe in bytes (or channels) for most softwares this is 510 (170 * 3) bur there is a brazilian software that uses all 512 bytes (channels) of the artnet universes
 * `callback` function : this is the function that will be called once all the universes of one subartnet have been gathered. the callback function as the subartnet as input and should be declared like this 'void callback(subArtnet *subartnet)
 
-### main example only only subartnet for all the universes 
+#### main example only only subartnet for all the universes 
 This is what most people will use to display artnet animations
 
 ```C
@@ -87,10 +86,10 @@ artnet.addSubArtnet(START_UNIVERSE ,NUM_LEDS_PER_STRIP * NUMSTRIPS * NB_CHANNEL_
 
 Please see the example `artnetdisplay.ino` which will be what most of you will do
 
-### What happens if two frames arrives to fast
+#### What happens if two frames arrives to fast
   I have notice that even at 30 fps (1 frame every 33ms) and a refresh rate of my build of 90fps(11ms per frame) sometimes two frames arrive in less than that delay. In that case the `showPixels` will wait the the current frame to be displayed before showing the next one
 
-### You can declare several subartnet
+#### You can declare several subartnet
 What the use of this ? Well if you want to do some artnet=>DMX and if you're not sending everytime all the universes
 if you  do this
  ```C
