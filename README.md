@@ -12,7 +12,7 @@ I suggest you read [https://github.com/hpwit/artnetESP32/blob/master/README.md] 
 ## Prerequisites
 Here is what I use in my tests
 
-* If you want to use artnet to display leds, this library requires the usage of [https://github.com/hpwit/I2SClocklessLedDriver] or [https://github.com/hpwit/I2SClocklessVirtualLedDriver] the latest library is in the case if you use the virtual pins for best results. I haven't fully tester it with FastLED
+* If you want to use artnet to display leds, this library requires the usage of [https://github.com/hpwit/I2SClocklessLedDriver] or [https://github.com/hpwit/I2SClocklessVirtualLedDriver] the latest library is in the case if you use the virtual pins for best results. I haven't fully tested it with FastLED
 * Compiled with arduino with 2.0.6 core library
 * Board choosen DevModule (esp32) not (Arduino because it does not link the netif library)
 * I've made a small c program (sorry no python lol)  in `sendartnet` directory to test the code `udpsend.c`. This program sends artnet formatted universes at the speed that you desire.
@@ -118,7 +118,7 @@ See the example `subArtnet.ino`
 
 
 
-### ethernet
+### What about ethernet ??
 Several persons want to use ethernet, the library works with ethernet. A user has managed to get good results limiting to 10Mbps the esp32
 
 ### How can you help
