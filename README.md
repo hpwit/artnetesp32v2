@@ -16,10 +16,10 @@ Here is what I use in my tests
 * Compiled with arduino with 2.0.6 core library
 * Board choosen DevModule (esp32) not (Arduino because it does not link the netif library)
 * I've made a small c program (sorry no python lol)  in `sendartnet` directory to test the code `udpsend.c`. This program sends artnet formatted universes at the speed that you desire.
-  => to compile : `gcc udpsend.c -o udpsend`
-  => usage *udpsend delay_between_universes_in_microseconds fps nb_of_universes ip_address* : `udpsend 100 40 35 192.168.0.11`
-  => this will send 35 universes @ 40fps to the ip address 192.168.0.11 with 100us(0.1ms) between universes
-  => do not forget to activate the debug level to 'Info'
+  - to compile : `gcc udpsend.c -o udpsend`
+  - usage *udpsend delay_between_universes_in_microseconds fps nb_of_universes ip_address* : `udpsend 100 40 35 192.168.0.11`
+  - this will send 35 universes @ 40fps to the ip address 192.168.0.11 with 100us(0.1ms) between universes
+  - do not forget to activate the debug level to 'Info'
 
 ## Other stuff
    * If you want to get some stat please activate the info debug level 'Tools>Core Debug Level>>Info'
