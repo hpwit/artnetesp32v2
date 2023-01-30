@@ -10,18 +10,23 @@ OK maybe it's not that clear let's get into it.
 I suggest you read [https://github.com/hpwit/artnetESP32/blob/master/README.md] for consideration about using artnet
 
 ## Prerequisites
-Here are what I use in my tests
+Here is what I use in my tests
 
 * If you want to use artnet to display leds, this library requires the usage of [https://github.com/hpwit/I2SClocklessLedDriver] or [https://github.com/hpwit/I2SClocklessVirtualLedDriver] the latest library is in the case if you use the virtual pins for best results. I haven't fully tester it with FastLED
 * Compiled with arduino with 2.0.6 core library
-* board choosen DevModule (esp32) not (Arduino because it does not link the netif library)
+* Board choosen DevModule (esp32) not (Arduino because it does not link the netif library)
+* I've made a small c program (sorry no python lol)  in `sendartnet` directory to test the code `udpsend.c`. This program sends artnet formatted universes at the speed that you desire.
+  => to compile : `gcc udpsend.c -o udpsend`
+  => usage *udpsend delay_between_universes_in_microseconds fps nb_of_universes ip_address* : `udpsend 100 40 35 192.168.0.11`
+  => this will send 35 universes @ 40fps to the ip address 192.168.0.11 with 100us(0.1ms) between universes
+  => do not forget to activate the debug level to 'Info'
 
 ## Other stuff
    * If you want to get some stat please activate the info debug level 'Tools>Core Debug Level>>Info'
-   * Have some fun !!
    * do not hesitate to contact me if any question and please let me know about your builds with my libraires
    * The code is not super clean yet so please be indulgent
    * I have tried to test as much as I can with my panel [https://www.youtube.com/watch?v=CmE4naL7m_8]
+   * Have some fun !!
 
 
 ## Declaration
@@ -55,13 +60,14 @@ if(artnet.listen(6454)) {
 ### let's start the fun
 Now that we listen to artnet universes we need to store the information somewhere :)
 We need to define a reciever for theses artnet universes : a subArtnet (maybe not the best name  :) )
-`addSubArtnet(int star_universe,uint32_t size,uint32_t nb_data_per_universe,void (*fptr)(subArtnet *subartnet))`
+
+#### subArnet creation :`addSubArtnet(int star_universe,uint32_t size,uint32_t nb_data_per_universe,void (*fptr)(subArtnet *subartnet))`
 * `star_universe` : the first universe to be recieved
 * `size` : the size in bytes of waht you want to get for RGB leds this will be `NUM_LEDS * 3`
-* `nb_data_per_universe` : the size of on universe in bytes (or channels) for most softwares this is 510 (170 * 3) bur there is a brazilian software that uses all 512 bytes (channels) of the artnet universes
+* `nb_data_per_universe` : the size of on universe in bytes (or channels) for most softwares this is 510 (170 * 3) but there is a brazilian software that uses all 512 bytes (channels) of the artnet universes
 * `callback` function : this is the function that will be called once all the universes of one subartnet have been gathered. the callback function as the subartnet as input and should be declared like this 'void callback(subArtnet *subartnet)
 
-#### main example only only subartnet for all the universes 
+#### main example with only one subartnet to gather all the universes 
 This is what most people will use to display artnet animations
 
 ```C
@@ -116,4 +122,5 @@ See the example `subArtnet.ino`
 Several persons want to use ethernet, the library works with ethernet. A user has managed to get good results limiting to 10Mbps the esp32
 
 ### How can you help
-Please do try this library try break it and let mn know I am always interested when my code is used
+ * Please do try this library try break it!!
+ * Let me know your results !! I am always happy to hear back and see what have been done using my code
