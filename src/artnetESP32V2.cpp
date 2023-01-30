@@ -492,7 +492,7 @@ void subArtnet::handleUniverse(int currenbt_uni,uint8_t *payload,size_t length)
             if( currenbt_uni == startUniverse)
             {
                 
-               //len=0;
+               tmp_len=0;
                 if(new_frame==false)
                 {
                     nb_frames_lost++;
@@ -512,9 +512,9 @@ void subArtnet::handleUniverse(int currenbt_uni,uint8_t *payload,size_t length)
                
             frame_disp=false;
                 previousUniverse =startUniverse;
-                 offset2=offset;
-                 memcpy(offset2,payload+ART_DMX_START,nbDataPerUniverse);
-                 //tmp_len=(length-ART_DMX_START<nbDataPerUniverse)?(length-ART_DMX_START):nbDataPerUniverse;
+                // offset2=offset;
+                 memcpy(offset,payload+ART_DMX_START,nbDataPerUniverse);
+                 tmp_len=(length-ART_DMX_START<nbDataPerUniverse)?(length-ART_DMX_START):nbDataPerUniverse;
                  if(startUniverse==endUniverse-1)
                  {
                   nb_frames++;
@@ -548,9 +548,11 @@ void subArtnet::handleUniverse(int currenbt_uni,uint8_t *payload,size_t length)
                     if(new_frame)
                     {
                         previousUniverse=currenbt_uni;
-                        offset2=offset+(currenbt_uni-startUniverse)*(nbDataPerUniverse);
-                         memcpy(offset2,payload+ART_DMX_START,nbDataPerUniverse);
-                        //tmp_len+=(length-ART_DMX_START<nbDataPerUniverse)?(length-ART_DMX_START):nbDataPerUniverse;
+                        //offset2=offset+(currenbt_uni-startUniverse)*(nbDataPerUniverse);
+                         //memcpy(offset2,payload+ART_DMX_START,nbDataPerUniverse);
+                         memcpy(offset+tmp_len,payload+ART_DMX_START,nbDataPerUniverse);
+                         //Serial.printf("%d %d\n",currenbt_uni,(length-ART_DMX_START<nbDataPerUniverse)?(length-ART_DMX_START):nbDataPerUniverse);
+                        tmp_len+=(length-ART_DMX_START<nbDataPerUniverse)?(length-ART_DMX_START):nbDataPerUniverse;
                         if(currenbt_uni==endUniverse-1)
                         {
                             nb_frames++;

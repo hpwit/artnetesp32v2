@@ -7,12 +7,12 @@ This version philosphy is a bit different than the ArtnetESP32 library.
 There is a concept of subArtnets which are the recipients of the universes . The main class is a listener that will 'forward' the universe to subArtnet.
 OK maybe it's not that clear let's get into it.
 
-I suggest you read [https://github.com/hpwit/artnetESP32/blob/master/README.md] for consideration about using artnet
+I suggest you read [Readme.me](https://github.com/hpwit/artnetESP32/blob/master/README.md) for consideration about using artnet
 
 ## Prerequisites
 Here is what I use in my tests
 
-* If you want to use artnet to display leds, this library requires the usage of [https://github.com/hpwit/I2SClocklessLedDriver] or [https://github.com/hpwit/I2SClocklessVirtualLedDriver] the latest library is in the case if you use the virtual pins for best results. I haven't fully tested it with FastLED
+* If you want to use artnet to display leds, this library requires the usage of [I2SClocklessLedDriver library](https://github.com/hpwit/I2SClocklessLedDriver) or [I2SClocklessVirtualLedDriver library](https://github.com/hpwit/I2SClocklessVirtualLedDriver) the latest library is in the case if you use the virtual pins for best results. I haven't fully tested it with FastLED
 * Compiled with arduino with 2.0.6 core library
 * IDE: Arduino IDE
 * Board choosen DevModule or DEVKIT V1 (esp32) not (ESP32 Arduino) because it does not link the netif library
@@ -26,7 +26,10 @@ Here is what I use in my tests
    * If you want to get some stat please activate the info debug level 'Tools>Core Debug Level>>Info'
    * do not hesitate to contact me if any question and please let me know about your builds with my libraires
    * The code is not super clean yet so please be indulgent
-   * I have tried to test as much as I can with my panel [https://www.youtube.com/watch?v=CmE4naL7m_8]
+   * I have tried to test as much as I can with my panel (5904 leds, 35 universes)
+      - [With Arena @40 fps](https://www.youtube.com/watch?v=CmE4naL7m_8)  <1% loss
+      - [With Glediator @32 fps](https://youtu.be/BMQr672pBgQ) <1% loss
+      - Madmapper 60fps <1% loss
    * Have some fun !!
 
 
@@ -67,7 +70,7 @@ We need to define a reciever for theses artnet universes : a subArtnet (maybe no
 
 #### subArnet creation :`addSubArtnet(int star_universe,uint32_t size,uint32_t nb_data_per_universe,void (*fptr)(subArtnet *subartnet))`
 * `star_universe` : the first universe to be recieved
-* `size` : the size in bytes of waht you want to get for RGB leds this will be `NUM_LEDS * 3`
+* `size` : the size in bytes of what you want to get. For RGB leds this will be `NUM_LEDS * 3`
 * `nb_data_per_universe` : the size of on universe in bytes (or channels) for most softwares this is 510 (170 * 3) but there is a brazilian software that uses all 512 bytes (channels) of the artnet universes
 * `callback` function : this is the function that will be called once all the universes of one subartnet have been gathered. the callback function as the subartnet as input and should be declared like this 'void callback(subArtnet *subartnet)
 
