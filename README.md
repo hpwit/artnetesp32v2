@@ -1,5 +1,5 @@
 ## artnetesp32v2 new version of the artnetesp32 library
-Here is a new take on the artnet library the code is still in its infancy
+Here is a new take on the artnet library the code is still in its infancy. The inspiration is the new aSyncUDP and the new udp_bind technique available in the new espressif core.
 
 The code is quite not that clean yet but I can drive 35 unvierses at 40+ fps with less than 1% loss.
 
@@ -59,6 +59,10 @@ if(artnet.listen(6454)) {
 
 ### let's start the fun
 Now that we listen to artnet universes we need to store the information somewhere :)
+<div style="width:60px ; height:60px">
+![](/images/shcema.001.jpeg?raw=true )
+<div>
+
 We need to define a reciever for theses artnet universes : a subArtnet (maybe not the best name  :) )
 
 #### subArnet creation :`addSubArtnet(int star_universe,uint32_t size,uint32_t nb_data_per_universe,void (*fptr)(subArtnet *subartnet))`
