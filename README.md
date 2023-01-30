@@ -59,9 +59,8 @@ if(artnet.listen(6454)) {
 
 ### let's start the fun
 Now that we listen to artnet universes we need to store the information somewhere :)
-<div style="width:60px ; height:60px">
+
 ![ss](/images/shcema.001.jpeg)
-<div>
 
 We need to define a reciever for theses artnet universes : a subArtnet (maybe not the best name  :) )
 
