@@ -1,7 +1,7 @@
 ## artnetesp32v2 new version of the artnetesp32 library
 Here is a new take on the artnet library the code is still in its infancy. The inspiration is the new aSyncUDP and the new udp_bind technique available in the new espressif core.
 
-The code is quite not that clean yet but I can drive 35 unvierses at 40+ fps with less than 1% loss.
+The code is quite not that clean yet but I can drive 35 unvierses at 40 fps with less than 1% loss. The tests doen with my testing tool seems to show 80 universes @30+ fps is not an issue either
 
 This version philosphy is a bit different than the ArtnetESP32 library. 
 There is a concept of subArtnets which are the recipients of the universes . The main class is a listener that will 'forward' the universe to subArtnet.
@@ -14,7 +14,8 @@ Here is what I use in my tests
 
 * If you want to use artnet to display leds, this library requires the usage of [https://github.com/hpwit/I2SClocklessLedDriver] or [https://github.com/hpwit/I2SClocklessVirtualLedDriver] the latest library is in the case if you use the virtual pins for best results. I haven't fully tested it with FastLED
 * Compiled with arduino with 2.0.6 core library
-* Board choosen DevModule (esp32) not (Arduino because it does not link the netif library)
+* IDE: Arduino IDE
+* Board choosen DevModule or DEVKIT V1 (esp32) not (ESP32 Arduino) because it does not link the netif library
 * I've made a small c program (sorry no python lol)  in `sendartnet` directory to test the code `udpsend.c`. This program sends artnet formatted universes at the speed that you desire.
   - to compile : `gcc udpsend.c -o udpsend`
   - usage *udpsend delay_between_universes_in_microseconds fps nb_of_universes ip_address* : `udpsend 100 40 35 192.168.0.11`
