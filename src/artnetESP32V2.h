@@ -27,7 +27,7 @@ struct netif;
 class subArtnet
 {
     public:
-  int startUniverse,endUniverse,nbDataPerUniverse,nbNeededUniverses,nb_frames_lost,nb_frames;
+  int startUniverse,endUniverse,nbDataPerUniverse,nbNeededUniverses,nb_frames_lost,nb_frames,previous_lost;
    uint8_t  *buffers[2];
    uint8_t currentframenumber;
    uint8_t *data;
@@ -123,7 +123,7 @@ subArtnet * addSubArtnet(int star_universe,uint32_t nb_data,uint32_t nb_data_per
 {
   if(numSubArtnet<MAX_SUBARTNET)
     {
-      subArtnets[numSubArtnet]=(subArtnet*)malloc(sizeof(subArtnet));
+      subArtnets[numSubArtnet]=(subArtnet*)calloc(sizeof(subArtnet),1);
       subArtnets[numSubArtnet]->_initialize(star_universe,nb_data,nb_data_per_universe);
       subArtnets[numSubArtnet]->subArtnetNum=numSubArtnet;
       subArtnets[numSubArtnet]->frameCallback=fptr;

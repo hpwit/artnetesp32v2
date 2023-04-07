@@ -137,7 +137,7 @@ lastUniverse=artnet->enduniverse;
 
             
 
-              //Serial.printf("%d\n",(e& 0xff00)>>8);
+             // Serial.printf("%d\n",e->universe);
 //#define TOTO
 
 #ifdef TOTO            
@@ -204,7 +204,9 @@ lastUniverse=artnet->enduniverse;
               
 
 #else
+ ESP_LOGI("ARTNETESP32","%d",e->universe);
         currenbt_uni =e->universe;
+       
         if(currenbt_uni <Nb_universe)
         {
             if( currenbt_uni == startUniverse)
@@ -239,7 +241,7 @@ lastUniverse=artnet->enduniverse;
                 if(currenbt_uni==previous_uni+1)
                 {
                    
-                    //Serial.printf("uni %d\n",currenbt_uni);
+                   
                     if(new_frame)
                     {
                         previous_uni=currenbt_uni;
@@ -352,7 +354,7 @@ artnetESP32V2 * artnet=((artnetESP32V2 *)pvParameters);
 
 static bool _udp_task_start(artnetESP32V2 *p){
     if(!_udp_queue){
-        _udp_queue = xQueueCreate(64, sizeof(lwip_event_packet_t *));
+        _udp_queue = xQueueCreate(128, sizeof(lwip_event_packet_t *));
         if(!_udp_queue){
             return false;
         }
@@ -442,6 +444,7 @@ static void _udp_task_subrarnet_handle(void *pvParameters)
   {
     nb_frames=0;
     nb_frames_lost=0;
+    previous_lost=0;
     previousUniverse=0;
      bool new_frame=false;
     
@@ -475,7 +478,7 @@ nbDataPerUniverse=nb_data_per_universe;
     offset=buffers[0];
     new_frame=false;
     subArtnet_sem=xSemaphoreCreateBinary();
-     xTaskCreateUniversal(_udp_task_subrarnet_handle, "async_udp", 4096, this, CONFIG_ARDUINO_UDP_TASK_PRIORITY, NULL, 0);
+     xTaskCreateUniversal(_udp_task_subrarnet_handle, "async_udp", 4096, this, 3, NULL, 0);
 
   }
 subArtnet:: ~subArtnet()
@@ -488,7 +491,7 @@ subArtnet:: ~subArtnet()
 }
 void subArtnet::handleUniverse(int currenbt_uni,uint8_t *payload,size_t length)
  {
-      //Serial.printf("uni:%d %d\n",currenbt_uni,subArtnetNum);
+     // Serial.printf("uni:%d %d\n",currenbt_uni,subArtnetNum);
             if( currenbt_uni == startUniverse)
             {
                 
@@ -523,8 +526,9 @@ void subArtnet::handleUniverse(int currenbt_uni,uint8_t *payload,size_t length)
                   // len=tmp_len;
                          if(frameCallback)
                           {
-                            xSemaphoreGive(subArtnet_sem);
+                           xSemaphoreGive(subArtnet_sem);
                               //frameCallback(subArtnetNum, offset);
+                              //frameCallback(this);
                           }
                            currentframenumber= (currentframenumber+1)%2;
                             offset=buffers[ currentframenumber];
@@ -533,8 +537,9 @@ void subArtnet::handleUniverse(int currenbt_uni,uint8_t *payload,size_t length)
                                 time2=millis();
                                 //Serial.printf("frame %d lost %d %.2f in %.2fs or %.2f fps\n",nb_frames,nb_frames_lost,(float)(100*nb_frames_lost)/(nb_frames_lost+nb_frames),(float)(time2-time1)/1000,(float)(1000*1000/(time2-time1)));
                                 //Serial.printf("frame %d lost %d %.2f \n",artnet->nbframes,artnet->nbframeslost,(float)(100*artnet->nbframeslost)/(artnet->nbframeslost+artnet->nbframes));
-                                 ESP_LOGI("ARTNETESP32","SUBARTNET:%d frames fully received:%d frames lost:%d  percentage lost:%.2f  fps: %.2f",subArtnetNum, nb_frames,nb_frames_lost-1,(float)(100* (nb_frames_lost-1))/(nb_frames_lost+nb_frames-1),(float)(1000*NB_FRAMES_DELTA/(time2-time1)));
+                                 ESP_LOGI("ARTNETESP32","SUBARTNET:%d frames fully received:%d frames lost:%d  delta:%d percentage lost:%.2f  fps: %.2f",subArtnetNum, nb_frames,nb_frames_lost-1, nb_frames_lost-previous_lost,(float)(100* (nb_frames_lost-1))/(nb_frames_lost+nb_frames-1),(float)(1000*NB_FRAMES_DELTA/(time2-time1)));
                              time1=time2;
+                             previous_lost=nb_frames_lost;
                             }
                  }
             }
@@ -567,6 +572,7 @@ void subArtnet::handleUniverse(int currenbt_uni,uint8_t *payload,size_t length)
                           {
                             xSemaphoreGive(subArtnet_sem);
                               //frameCallback(subArtnetNum, offset);
+                              // frameCallback(this);
                           }
                            currentframenumber= (currentframenumber+1)%2;
                             offset=buffers[ currentframenumber];
@@ -575,8 +581,9 @@ void subArtnet::handleUniverse(int currenbt_uni,uint8_t *payload,size_t length)
                                 time2=millis();
                                 //Serial.printf("frame %d lost %d %.2f in %.2fs or %.2f fps\n",nb_frames,nb_frames_lost,(float)(100*nb_frames_lost)/(nb_frames_lost+nb_frames),(float)(time2-time1)/1000,(float)(1000*1000/(time2-time1)));
                                 //Serial.printf("frame %d lost %d %.2f \n",artnet->nbframes,artnet->nbframeslost,(float)(100*artnet->nbframeslost)/(artnet->nbframeslost+artnet->nbframes));
-                                 ESP_LOGI("ARTNETESP32","SUBARTNET:%d frames fully received:%d frames lost:%d  percentage lost:%.2f  fps: %.2f",subArtnetNum, nb_frames,nb_frames_lost-1,(float)(100* (nb_frames_lost-1))/(nb_frames_lost+nb_frames-1),(float)(1000*NB_FRAMES_DELTA/(time2-time1)));
+                                 ESP_LOGI("ARTNETESP32","SUBARTNET:%d frames fully received:%d frames lost:%d  delta:%d percentage lost:%.2f  fps: %.2f",subArtnetNum, nb_frames,nb_frames_lost-1, nb_frames_lost-previous_lost,(float)(100* (nb_frames_lost-1))/(nb_frames_lost+nb_frames-1),(float)(1000*NB_FRAMES_DELTA/(time2-time1)));
                              time1=time2;
+                             previous_lost=nb_frames_lost;
                             }
                         }
                     }
