@@ -16,9 +16,12 @@ extern "C" {
 
 #include "lwip/priv/tcpip_priv.h"
 
+
 #define BUFFER_SIZE 512
 #define ART_DMX_START 18
+#ifndef NB_FRAMES_DELTA
 #define NB_FRAMES_DELTA 100
+#endif
 
 #define UDP_MUTEX_LOCK()    //xSemaphoreTake(_lock, portMAX_DELAY)
 #define UDP_MUTEX_UNLOCK()  //xSemaphoreGive(_lock)
@@ -500,7 +503,8 @@ void subArtnet::handleUniverse(int currenbt_uni,uint8_t *payload,size_t length)
                 {
                     nb_frames_lost++;
                    //  Serial.printf(" bad previous universe nbzeros:%d:%d:%d\n",nb_zero,nb_frames,nb_frames_lost);
-                }else
+                }
+                /*else
                 {
                     if(frame_disp==false)
                     {
@@ -511,17 +515,18 @@ void subArtnet::handleUniverse(int currenbt_uni,uint8_t *payload,size_t length)
                 // nb_zero++;
                 // Serial.printf("new frame nbzeors:%d :%d:%d delta:%d\n",nb_zero,nb_frames,nb_frames_lost,nb_frames+nb_frames_lost-nb_zero);
                 new_frame= true;
+                */
                 
                
-            frame_disp=false;
+            new_frame=true;
                 previousUniverse =startUniverse;
                 // offset2=offset;
-                 memcpy(offset,payload+ART_DMX_START,nbDataPerUniverse);
+                memcpy(offset,payload+ART_DMX_START,nbDataPerUniverse);
                  tmp_len=(length-ART_DMX_START<nbDataPerUniverse)?(length-ART_DMX_START):nbDataPerUniverse;
                  if(startUniverse==endUniverse-1)
                  {
                   nb_frames++;
-                   frame_disp=true;
+                  // new_frame=true;
                   data=offset;
                   // len=tmp_len;
                          if(frameCallback)
@@ -562,7 +567,7 @@ void subArtnet::handleUniverse(int currenbt_uni,uint8_t *payload,size_t length)
                         {
                             nb_frames++;
                        // Serial.printf("Got frame %d:%d:%d\n",nb_zero,nb_frames,nb_frames_lost);
-                        frame_disp=true;
+                       // new_frame=true;
                            // new_frame=false;
                             //Serial.printf("ee\n");
                         //  memcpy(offset2,(uint8_t *)e->pb->payload+ART_DMX_START,artnet->nbPixelsPerUniverse);
@@ -591,10 +596,12 @@ void subArtnet::handleUniverse(int currenbt_uni,uint8_t *payload,size_t length)
                 }
                 else
                 {
-                    //new_frame=false;
+                    if(currenbt_uni<=previousUniverse)
+                            nb_frames_lost++;
+                    new_frame=false;
                     //previous_uni=255;        
                     
-                    
+                    /*
                     if(new_frame)
                         {
                            // Serial.printf("got worng %d %d \n",currenbt_uni,previous_uni);
@@ -602,6 +609,7 @@ void subArtnet::handleUniverse(int currenbt_uni,uint8_t *payload,size_t length)
                            new_frame=false;
                             
                         }
+                        */
 
                 }
               }

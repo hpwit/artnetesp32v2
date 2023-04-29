@@ -12,7 +12,8 @@ extern "C" {
 #include "freertos/semphr.h"
 }
 
-
+//CONFIG_UDP_RECVMBOX_SIZE=6
+//CONFIG_LWIP_MAX_UDP_PCBS
 //class artnetESP32V2;
 
 struct udp_pcb;
