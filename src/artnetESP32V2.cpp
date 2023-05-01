@@ -17,7 +17,7 @@ extern "C" {
 #include "lwip/priv/tcpip_priv.h"
 
 
-#define BUFFER_SIZE 512
+#define BUFFER_SIZE 10
 #define ART_DMX_START 18
 #ifndef NB_FRAMES_DELTA
 #define NB_FRAMES_DELTA 100
@@ -464,18 +464,22 @@ nbDataPerUniverse=nb_data_per_universe;
         endUniverse=startUniverse+nbNeededUniverses;
     
     ESP_LOGI("ARTNETESP32","Initialize subArtnet Start Universe: %d  end Universe: %d, universes %d",startUniverse,endUniverse-1,  nbNeededUniverses);
-   buffers[0] = (uint8_t *)malloc((nbDataPerUniverse + ART_DMX_START) * nbNeededUniverses  + 8 + BUFFER_SIZE);
+   buffers[0] = (uint8_t *)calloc((nbDataPerUniverse ) * nbNeededUniverses  + 8 + BUFFER_SIZE,1);
+   //buffers[0] = (uint8_t *)calloc((510 + ART_DMX_START) * 73  + 8 + BUFFER_SIZE,1);
     if ( buffers[0] == NULL)
     {
         Serial.printf("impossible to create the buffer 1\n");
         return;
     }
-    buffers[1] = (uint8_t *)malloc((nbDataPerUniverse  + ART_DMX_START) * nbNeededUniverses  + 8 + BUFFER_SIZE);
+    memset(buffers[0],0,(nbDataPerUniverse ) * nbNeededUniverses  + 8 + BUFFER_SIZE);
+    buffers[1] = (uint8_t *)calloc((nbDataPerUniverse  ) * nbNeededUniverses  + 8 + BUFFER_SIZE,1);
+   // buffers[1] = (uint8_t *)calloc((510 + ART_DMX_START) * 73  + 8 + BUFFER_SIZE,1);
     if (buffers[1] == NULL)
     {
         Serial.printf("impossible to create the buffer 2\n");
         return;
     }
+    memset(buffers[1],0,(nbDataPerUniverse ) * nbNeededUniverses  + 8 + BUFFER_SIZE);
    // Serial.printf("Starting SubArtnet nbNee sdedUniverses:%d\n", nbNeededUniverses);
     currentframenumber=0;
     offset=buffers[0];
