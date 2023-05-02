@@ -21,6 +21,7 @@ extern "C" {
 #define ART_DMX_START 18
 #ifndef NB_FRAMES_DELTA
 #define NB_FRAMES_DELTA 100
+#define MAX_SUBARTNET 20
 #endif
 
 #define UDP_MUTEX_LOCK()    //xSemaphoreTake(_lock, portMAX_DELAY)
@@ -106,8 +107,9 @@ typedef struct {
 } lwip_event_packet_t;
 
 static xQueueHandle _udp_queue;
+static xQueueHandle _show_queue[MAX_SUBARTNET];
 static volatile TaskHandle_t _udp_task_handle = NULL;
-
+/*
 static void _udp_task(void *pvParameters){
     lwip_event_packet_t * e = NULL;
    // uint8_t u[2000];
@@ -307,7 +309,7 @@ lastUniverse=artnet->enduniverse;
     _udp_task_handle = NULL;
     vTaskDelete(NULL);
 }
-
+*/
 
 
 
@@ -334,7 +336,7 @@ artnetESP32V2 * artnet=((artnetESP32V2 *)pvParameters);
    for(int subArnetIndex=0;subArnetIndex<artnet->numSubArtnet;subArnetIndex++)
    {
       subArtnet *sub_artnet= (artnet->subArtnets)[subArnetIndex];
-     //Serial.printf(" %d %d %d %d \n",subArnetIndex,(*sub_artnet).startUniverse,sub_artnet->startUniverse-1,e->universe);
+    //Serial.printf(" %d %d %d %d \n",subArnetIndex,(*sub_artnet).startUniverse,sub_artnet->startUniverse-1,e->universe);
       if( sub_artnet->startUniverse<=e->universe and (sub_artnet->endUniverse-1)>=e->universe )
       {
           //we've found the surbartnet sending info to him
@@ -357,16 +359,28 @@ artnetESP32V2 * artnet=((artnetESP32V2 *)pvParameters);
 
 static bool _udp_task_start(artnetESP32V2 *p){
     if(!_udp_queue){
-        _udp_queue = xQueueCreate(128, sizeof(lwip_event_packet_t *));
+        _udp_queue = xQueueCreate(64, sizeof(lwip_event_packet_t *));
         if(!_udp_queue){
             return false;
         }
     }
+     for(int subArnetIndex=0;subArnetIndex<p->numSubArtnet;subArnetIndex++)
+   {
+      if(!_show_queue[subArnetIndex]){
+        _show_queue[subArnetIndex] = xQueueCreate(10, sizeof(uint8_t *));
+        if(! _show_queue[subArnetIndex]){
+            ESP_LOGI("ARTNETESP32","SHOW QUEUE %d QUEUES CREATED", subArnetIndex);
+            return false;
+        }
+       ESP_LOGI("ARTNETESP32","QUEUES CREATED");
+    }
+   }
     if(!_udp_task_handle){
         //xTaskCreateUniversal(_udp_task, "async_udp", 4096, p, CONFIG_ARDUINO_UDP_TASK_PRIORITY, (TaskHandle_t*)&_udp_task_handle, 0);
         xTaskCreateUniversal(_udp_task_subrarnet, "async_udp", 4096, p, CONFIG_ARDUINO_UDP_TASK_PRIORITY, (TaskHandle_t*)&_udp_task_handle, 0);
         
         if(!_udp_task_handle){
+             ESP_LOGI("ARTNETESP32","no task handle");
             return false;
         }
     }
@@ -427,11 +441,13 @@ if(!_udp_task_post(this_pb)){
 static void _udp_task_subrarnet_handle(void *pvParameters)
 {
   subArtnet * subartnet=(subArtnet *)pvParameters;
+  uint8_t *data=NULL;
   for(;;)
   {
-    xSemaphoreTake(subartnet->subArtnet_sem, portMAX_DELAY);
+   // xSemaphoreTake(subartnet->subArtnet_sem, portMAX_DELAY);
    // subartnet->frameCallback(subartnet->subArtnetNum, subartnet->currentframe,subartnet->len[subartnet->currentframenumber]);
-    subartnet->frameCallback(subartnet);
+   if(xQueueReceive(_show_queue[subartnet->subArtnetNum], &data, portMAX_DELAY) == pdTRUE)
+    subartnet->frameCallback(subartnet,data);
   // subartnet->frameCallback(subartnet->currentframe);
   }
 }
@@ -440,10 +456,10 @@ static void _udp_task_subrarnet_handle(void *pvParameters)
 
   subArtnet::subArtnet(int star_universe,uint32_t nb_data,uint32_t nb_data_per_universe)
   {
-    _initialize(star_universe,nb_data,nb_data_per_universe);
+    _initialize(star_universe,nb_data,nb_data_per_universe,NULL);
   }
 
-  void subArtnet::_initialize(int star_universe,uint32_t nb_data,uint32_t nb_data_per_universe)
+  void subArtnet::_initialize(int star_universe,uint32_t nb_data,uint32_t nb_data_per_universe,uint8_t * leds)
   {
     nb_frames=0;
     nb_frames_lost=0;
@@ -480,12 +496,33 @@ nbDataPerUniverse=nb_data_per_universe;
         return;
     }
     memset(buffers[1],0,(nbDataPerUniverse ) * nbNeededUniverses  + 8 + BUFFER_SIZE);
+
+    buffers[2] = (uint8_t *)calloc((nbDataPerUniverse  ) * nbNeededUniverses  + 8 + BUFFER_SIZE,1);
+   // buffers[1] = (uint8_t *)calloc((510 + ART_DMX_START) * 73  + 8 + BUFFER_SIZE,1);
+    if (buffers[2] == NULL)
+    {
+        Serial.printf("impossible to create the buffer 3\n");
+        if(leds!=NULL)
+        {
+        buffers[2]=leds;
+         nbOfBuffers=3;
+        }
+        else
+        {
+        nbOfBuffers=2;
+        }
+    }
+    else
+    {
+    nbOfBuffers=3;
+    memset(buffers[2],0,(nbDataPerUniverse ) * nbNeededUniverses  + 8 + BUFFER_SIZE);
+    }
    // Serial.printf("Starting SubArtnet nbNee sdedUniverses:%d\n", nbNeededUniverses);
     currentframenumber=0;
     offset=buffers[0];
     new_frame=false;
-    subArtnet_sem=xSemaphoreCreateBinary();
-     xTaskCreateUniversal(_udp_task_subrarnet_handle, "async_udp", 4096, this, 3, NULL, 0);
+    //subArtnet_sem=xSemaphoreCreateBinary();
+     //xTaskCreateUniversal(_udp_task_subrarnet_handle, "async_udp", 4096, this, 3, NULL, 0);
 
   }
 subArtnet:: ~subArtnet()
@@ -496,6 +533,7 @@ subArtnet:: ~subArtnet()
         free(buffers[1]);
 
 }
+
 void subArtnet::handleUniverse(int currenbt_uni,uint8_t *payload,size_t length)
  {
      // Serial.printf("uni:%d %d\n",currenbt_uni,subArtnetNum);
@@ -535,11 +573,12 @@ void subArtnet::handleUniverse(int currenbt_uni,uint8_t *payload,size_t length)
                   // len=tmp_len;
                          if(frameCallback)
                           {
-                           xSemaphoreGive(subArtnet_sem);
+                              xQueueSend(_show_queue[subArtnetNum], &data, portMAX_DELAY);
+                          // xSemaphoreGive(subArtnet_sem);
                               //frameCallback(subArtnetNum, offset);
                               //frameCallback(this);
                           }
-                           currentframenumber= (currentframenumber+1)%2;
+                           currentframenumber= (currentframenumber+1)%nbOfBuffers;
                             offset=buffers[ currentframenumber];
                         if((nb_frames)%NB_FRAMES_DELTA==0)
                             {
@@ -579,11 +618,14 @@ void subArtnet::handleUniverse(int currenbt_uni,uint8_t *payload,size_t length)
                           // len=tmp_len;
                           if(frameCallback)
                           {
-                            xSemaphoreGive(subArtnet_sem);
+                           if( xQueueSend(_show_queue[subArtnetNum], &data, portMAX_DELAY) != pdPASS) {
+         ESP_LOGI("ARTNETESP32","no frame");
+    }
+                           // xSemaphoreGive(subArtnet_sem);
                               //frameCallback(subArtnetNum, offset);
                               // frameCallback(this);
                           }
-                           currentframenumber= (currentframenumber+1)%2;
+                           currentframenumber= (currentframenumber+1)%nbOfBuffers;
                             offset=buffers[ currentframenumber];
                         if((nb_frames)%NB_FRAMES_DELTA==0)
                             {
@@ -600,8 +642,8 @@ void subArtnet::handleUniverse(int currenbt_uni,uint8_t *payload,size_t length)
                 }
                 else
                 {
-                    if(currenbt_uni<=previousUniverse)
-                            nb_frames_lost++;
+                   // if(currenbt_uni<=previousUniverse)
+                     //       nb_frames_lost++;
                     new_frame=false;
                     //previous_uni=255;        
                     
@@ -631,7 +673,7 @@ void subArtnet::handleUniverse(int currenbt_uni,uint8_t *payload,size_t length)
 
     */
 
-    void subArtnet::setFrameCallback(  void (*fptr)(subArtnet   * subartnet))
+    void subArtnet::setFrameCallback(  void (*fptr)(subArtnet   * subartnet,uint8_t * data))
     {
          frameCallback = fptr;
     }
@@ -814,6 +856,11 @@ bool artnetESP32V2::listen(const ip_addr_t *addr, uint16_t port)
         log_e("failed to start task");
         return false;
     }
+       for(int subartnet=0;subartnet<numSubArtnet;subartnet++)
+    {
+     subArtnets[subartnet]->subArtnet_sem=xSemaphoreCreateBinary();
+     xTaskCreateUniversal(_udp_task_subrarnet_handle, "async_udp", 4096, subArtnets[subartnet], 3, NULL, 0);
+    }
     if(!_init()) {
         return false;
     }
@@ -828,6 +875,7 @@ bool artnetESP32V2::listen(const ip_addr_t *addr, uint16_t port)
         return false;
     }
     _connected = true;
+ 
     UDP_MUTEX_UNLOCK();
     return true;
 }

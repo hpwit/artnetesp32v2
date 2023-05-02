@@ -29,14 +29,15 @@ class subArtnet
 {
     public:
   int startUniverse,endUniverse,nbDataPerUniverse,nbNeededUniverses,nb_frames_lost,nb_frames,previous_lost;
-   uint8_t  *buffers[2];
+   uint8_t  *buffers[10];
    uint8_t currentframenumber;
+   uint8_t nbOfBuffers=2;
    uint8_t *data;
    int previousUniverse;
    size_t len;
    size_t tmp_len;
   // void (*frameCallback)(int subartnetnum,uint8_t * data,size_t len);
-  void (*frameCallback)(subArtnet *subartnet);
+  void (*frameCallback)(subArtnet *subartnet,uint8_t * data);
   //void (*frameCallback)(uint8_t  *data);
 
   bool new_frame=false;
@@ -46,12 +47,12 @@ class subArtnet
 uint8_t * offset,*offset2;
 volatile xSemaphoreHandle subArtnet_sem = NULL;
 subArtnet(int star_universe,uint32_t nb_data,uint32_t nb_data_per_universe);
-void _initialize(int star_universe,uint32_t nb_data,uint32_t nb_data_per_universe);
+void _initialize(int star_universe,uint32_t nb_data,uint32_t nb_data_per_universe,uint8_t *leds);
  ~subArtnet();
 void handleUniverse(int currenbt_uni,uint8_t *payload,size_t len);
    uint8_t * getData();
   // void setFrameCallback(  void (*fptr)(int num,uint8_t * data,size_t len));
- void setFrameCallback(  void (*fptr)(subArtnet * subartnet));
+ void setFrameCallback(  void (*fptr)(subArtnet * subartnet,uint8_t * data));
  //void setFrameCallback(  void (*fptr)(uint8_t * data));
 
 };
@@ -74,8 +75,9 @@ class artnetESP32V2 //: public Print
 
        int num_universes,numSubArtnet=0;
     uint8_t *artnetleds1, *buffer2;
-    uint8_t  *buffers[2];
+    uint8_t  *buffers[10];
       uint8_t currentframenumber;
+      uint8_t nbOfBuffers=2;
 
     
       uint8_t *currentframe;
@@ -120,12 +122,12 @@ class artnetESP32V2 //: public Print
 
   }
 
-subArtnet * addSubArtnet(int star_universe,uint32_t nb_data,uint32_t nb_data_per_universe,void (*fptr)(subArtnet *subartnet))
+subArtnet * addSubArtnet(int star_universe,uint32_t nb_data,uint32_t nb_data_per_universe,void (*fptr)(subArtnet *subartnet,uint8_t *data),uint8_t *leds)
 {
   if(numSubArtnet<MAX_SUBARTNET)
     {
       subArtnets[numSubArtnet]=(subArtnet*)calloc(sizeof(subArtnet),1);
-      subArtnets[numSubArtnet]->_initialize(star_universe,nb_data,nb_data_per_universe);
+      subArtnets[numSubArtnet]->_initialize(star_universe,nb_data,nb_data_per_universe,leds);
       subArtnets[numSubArtnet]->subArtnetNum=numSubArtnet;
       subArtnets[numSubArtnet]->frameCallback=fptr;
       numSubArtnet++;
