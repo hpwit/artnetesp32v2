@@ -47,6 +47,7 @@ class subArtnet
 uint8_t * offset,*offset2;
 volatile xSemaphoreHandle subArtnet_sem = NULL;
 subArtnet(int star_universe,uint32_t nb_data,uint32_t nb_data_per_universe);
+ void createBuffers(uint8_t *leds);
 void _initialize(int star_universe,uint32_t nb_data,uint32_t nb_data_per_universe,uint8_t *leds);
  ~subArtnet();
 void handleUniverse(int currenbt_uni,uint8_t *payload,size_t len);

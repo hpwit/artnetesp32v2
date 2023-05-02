@@ -19,9 +19,10 @@ extern "C" {
 
 #define BUFFER_SIZE 10
 #define ART_DMX_START 18
+#define NB_MAX_BUFFER 5
+#define MAX_SUBARTNET 20
 #ifndef NB_FRAMES_DELTA
 #define NB_FRAMES_DELTA 100
-#define MAX_SUBARTNET 20
 #endif
 
 #define UDP_MUTEX_LOCK()    //xSemaphoreTake(_lock, portMAX_DELAY)
@@ -459,6 +460,42 @@ static void _udp_task_subrarnet_handle(void *pvParameters)
     _initialize(star_universe,nb_data,nb_data_per_universe,NULL);
   }
 
+  void subArtnet::createBuffers(uint8_t *leds)
+  {
+    for(int buffnum=0;buffnum<NB_MAX_BUFFER;buffnum++)
+    {
+    buffers[buffnum] = (uint8_t *)calloc((nbDataPerUniverse ) * nbNeededUniverses  + 8 + BUFFER_SIZE,1);
+   //buffers[0] = (uint8_t *)calloc((510 + ART_DMX_START) * 73  + 8 + BUFFER_SIZE,1);
+    if ( buffers[buffnum] == NULL)
+    {
+        Serial.printf("impossible to create the buffer %d\n",buffnum);
+         if(leds!=NULL)
+        {
+        buffers[buffnum]=leds;
+         Serial.printf("using leds array as  buffer %d\n",buffnum);
+         nbOfBuffers=buffnum+1;
+         return;
+        }
+        else
+        {
+                        nbOfBuffers=buffnum;
+            Serial.printf("nb total of buffers:%d\n",nbOfBuffers);
+
+            return;
+        }
+        
+    }
+    else
+    {
+        Serial.printf("Creation of  buffer %d\n",buffnum);
+          
+          nbOfBuffers=buffnum+1;
+    }
+   memset(buffers[buffnum],0,(nbDataPerUniverse ) * nbNeededUniverses  + 8 + BUFFER_SIZE);
+    }
+    Serial.printf("nb total of buffers:%d\n",nbOfBuffers);
+  }
+
   void subArtnet::_initialize(int star_universe,uint32_t nb_data,uint32_t nb_data_per_universe,uint8_t * leds)
   {
     nb_frames=0;
@@ -480,43 +517,7 @@ nbDataPerUniverse=nb_data_per_universe;
         endUniverse=startUniverse+nbNeededUniverses;
     
     ESP_LOGI("ARTNETESP32","Initialize subArtnet Start Universe: %d  end Universe: %d, universes %d",startUniverse,endUniverse-1,  nbNeededUniverses);
-   buffers[0] = (uint8_t *)calloc((nbDataPerUniverse ) * nbNeededUniverses  + 8 + BUFFER_SIZE,1);
-   //buffers[0] = (uint8_t *)calloc((510 + ART_DMX_START) * 73  + 8 + BUFFER_SIZE,1);
-    if ( buffers[0] == NULL)
-    {
-        Serial.printf("impossible to create the buffer 1\n");
-        return;
-    }
-    memset(buffers[0],0,(nbDataPerUniverse ) * nbNeededUniverses  + 8 + BUFFER_SIZE);
-    buffers[1] = (uint8_t *)calloc((nbDataPerUniverse  ) * nbNeededUniverses  + 8 + BUFFER_SIZE,1);
-   // buffers[1] = (uint8_t *)calloc((510 + ART_DMX_START) * 73  + 8 + BUFFER_SIZE,1);
-    if (buffers[1] == NULL)
-    {
-        Serial.printf("impossible to create the buffer 2\n");
-        return;
-    }
-    memset(buffers[1],0,(nbDataPerUniverse ) * nbNeededUniverses  + 8 + BUFFER_SIZE);
-
-    buffers[2] = (uint8_t *)calloc((nbDataPerUniverse  ) * nbNeededUniverses  + 8 + BUFFER_SIZE,1);
-   // buffers[1] = (uint8_t *)calloc((510 + ART_DMX_START) * 73  + 8 + BUFFER_SIZE,1);
-    if (buffers[2] == NULL)
-    {
-        Serial.printf("impossible to create the buffer 3\n");
-        if(leds!=NULL)
-        {
-        buffers[2]=leds;
-         nbOfBuffers=3;
-        }
-        else
-        {
-        nbOfBuffers=2;
-        }
-    }
-    else
-    {
-    nbOfBuffers=3;
-    memset(buffers[2],0,(nbDataPerUniverse ) * nbNeededUniverses  + 8 + BUFFER_SIZE);
-    }
+   createBuffers(leds);
    // Serial.printf("Starting SubArtnet nbNee sdedUniverses:%d\n", nbNeededUniverses);
     currentframenumber=0;
     offset=buffers[0];
