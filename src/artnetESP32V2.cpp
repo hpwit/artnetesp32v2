@@ -25,7 +25,7 @@ extern "C"
 #define NB_FRAMES_DELTA 100
 #endif
 #define SUBARTNET_CORE 0
-#define CALLBACK_CORE 1
+#define CALLBACK_CORE 0
 
 #define UDP_MUTEX_LOCK()   // xSemaphoreTake(_lock, portMAX_DELAY)
 #define UDP_MUTEX_UNLOCK() // xSemaphoreGive(_lock)
@@ -302,8 +302,8 @@ void subArtnet::_initialize(int star_universe, uint32_t nb_data, uint32_t nb_dat
     nb_frames = 0;
     nb_frames_lost = 0;
     previous_lost = 0;
-    previousUniverse = 0;
-    bool new_frame = false;
+    previousUniverse = 99;
+     new_frame = false;
 
     nbDataPerUniverse = nb_data_per_universe;
     startUniverse = star_universe;
@@ -319,7 +319,7 @@ void subArtnet::_initialize(int star_universe, uint32_t nb_data, uint32_t nb_dat
     createBuffers(leds);
     currentframenumber = 0;
     offset = buffers[0];
-    new_frame = false;
+   // new_frame = false;
 }
 
 subArtnet::~subArtnet()
@@ -330,9 +330,10 @@ subArtnet::~subArtnet()
         free(buffers[1]);
 }
 
-void subArtnet::handleUniverse(int currenbt_uni, uint8_t *payload, size_t length)
+void subArtnet::handleUniverse(int current_uni, uint8_t *payload, size_t length)
 {
-    if (currenbt_uni == startUniverse)
+
+    if(current_uni == startUniverse)
     {
         tmp_len = 0;
         if (new_frame == false)
@@ -340,7 +341,51 @@ void subArtnet::handleUniverse(int currenbt_uni, uint8_t *payload, size_t length
             nb_frames_lost++;
         }
         new_frame = true;
-        previousUniverse = startUniverse;
+        if(frame_disp)
+        {
+            xQueueSend(_show_queue[subArtnetNum], &data, portMAX_DELAY);
+            frame_disp= false; 
+        }
+        previousUniverse = current_uni;
+        memcpy(offset, payload + ART_DMX_START, nbDataPerUniverse);
+        tmp_len = (length - ART_DMX_START < nbDataPerUniverse) ? (length - ART_DMX_START) : nbDataPerUniverse;
+        return;
+    }
+    if (current_uni == previousUniverse + 1)
+    {
+        if (new_frame)
+        {
+            previousUniverse = current_uni;
+            memcpy(offset + tmp_len, payload + ART_DMX_START, nbDataPerUniverse);
+            tmp_len += (length - ART_DMX_START < nbDataPerUniverse) ? (length - ART_DMX_START) : nbDataPerUniverse;
+            if (current_uni == endUniverse - 1)
+            {
+                // nb_frames++;
+                data = offset;
+                currentframenumber = (currentframenumber + 1) % nbOfBuffers;
+                offset = buffers[currentframenumber];
+                frame_disp=true;
+
+            }
+        }
+    }
+    else
+    {
+        new_frame = false;
+    }
+
+
+/*
+
+    if (currenbt_uni == startUniverse)
+    {
+        tmp_len = 0;
+        if (new_frame == false)
+        {
+            nb_frames_lost++;
+        }
+        //new_frame = true;
+        previousUniverse = current_uni;
         memcpy(offset, payload + ART_DMX_START, nbDataPerUniverse);
         tmp_len = (length - ART_DMX_START < nbDataPerUniverse) ? (length - ART_DMX_START) : nbDataPerUniverse;
         if (startUniverse == endUniverse - 1)
@@ -377,6 +422,8 @@ void subArtnet::handleUniverse(int currenbt_uni, uint8_t *payload, size_t length
             new_frame = false;
         }
     }
+
+    */
 }
 
 uint8_t *subArtnet::getData()
