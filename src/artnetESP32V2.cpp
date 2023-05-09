@@ -243,6 +243,7 @@ static void _udp_task_subrarnet_handle(void *pvParameters)
             if(10-uxQueueSpacesAvailable( _show_queue[subartnet->subArtnetNum])>0 )
                 {
                      ESP_LOGD("ARTNETESP32","encore %d Frame:%d %d" ,10-uxQueueSpacesAvailable( _show_queue[subartnet->subArtnetNum]),subartnet->nb_frames,t2/240000);
+                    subartnet->nb_frame_double++;
                      //if((30-2*t2/240000-1)>0)
                     //vTaskDelay(30-2*t2/240000-1);
                  //  vTaskDelay(5);
@@ -251,7 +252,7 @@ static void _udp_task_subrarnet_handle(void *pvParameters)
         if ((subartnet->nb_frames) % NB_FRAMES_DELTA == 0)
         {
             subartnet->time2 =millis();
-            ESP_LOGI("ARTNETESP32", "SUBARTNET:%d frames fully received:%d frames lost:%d  delta:%d percentage lost:%.2f  fps: %.2f", subartnet->subArtnetNum, subartnet->nb_frames, subartnet->nb_frames_lost - 1, subartnet->nb_frames_lost - subartnet->previous_lost, (float)(100 * (subartnet->nb_frames_lost - 1)) / (subartnet->nb_frames_lost + subartnet->nb_frames - 1), (float)(1000 * NB_FRAMES_DELTA / ((subartnet->time2 - subartnet->time1) / 1)));
+            ESP_LOGI("ARTNETESP32", "SUBARTNET:%d frames fully received:%d frames lost:%d  delta:%d percentage lost:%.2f  fps: %.2f nb frame 'too fast': %d", subartnet->subArtnetNum, subartnet->nb_frames, subartnet->nb_frames_lost - 1, subartnet->nb_frames_lost - subartnet->previous_lost, (float)(100 * (subartnet->nb_frames_lost - 1)) / (subartnet->nb_frames_lost + subartnet->nb_frames - 1), (float)(1000 * NB_FRAMES_DELTA / ((subartnet->time2 - subartnet->time1) / 1)),subartnet->nb_frame_double);
             subartnet->time1 = subartnet->time2;
             subartnet->previous_lost = subartnet->nb_frames_lost;
         }
@@ -300,6 +301,7 @@ void subArtnet::createBuffers(uint8_t *leds)
 void subArtnet::_initialize(int star_universe, uint32_t nb_data, uint32_t nb_data_per_universe, uint8_t *leds)
 {
     nb_frames = 0;
+    nb_frame_double = 0;
     nb_frames_lost = 0;
     previous_lost = 0;
     previousUniverse = 99;

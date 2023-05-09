@@ -27,7 +27,7 @@ struct netif;
 class subArtnet
 {
 public:
-  int startUniverse, endUniverse, nbDataPerUniverse, nbNeededUniverses, nb_frames_lost, nb_frames, previous_lost;
+  int startUniverse, endUniverse, nbDataPerUniverse, nbNeededUniverses, nb_frames_lost, nb_frames, previous_lost,nb_frame_double;
   uint8_t *buffers[10];
   uint8_t currentframenumber;
   uint8_t nbOfBuffers = 2;
@@ -41,6 +41,7 @@ public:
   int subArtnetNum;
   long time1, time2;
   uint8_t *offset, *offset2;
+ 
   volatile xSemaphoreHandle subArtnet_sem = NULL;
   subArtnet(int star_universe, uint32_t nb_data, uint32_t nb_data_per_universe);
   void createBuffers(uint8_t *leds);
