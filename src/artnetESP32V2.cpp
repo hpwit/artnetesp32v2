@@ -136,7 +136,7 @@ static void _udp_task_subrarnet(void *pvParameters)
             for (int subArnetIndex = 0; subArnetIndex < artnet->numSubArtnet; subArnetIndex++)
             {
                 subArtnet *sub_artnet = (artnet->subArtnets)[subArnetIndex];
-                ESP_LOGV("ARTNETESP32", " %d %d %d %d \n", subArnetIndex, (*sub_artnet).startUniverse, sub_artnet->startUniverse - 1, e->universe);
+               // ESP_LOGV("ARTNETESP32", " %d %d %d %d \n", subArnetIndex, (*sub_artnet).startUniverse, sub_artnet->startUniverse - 1, e->universe);
                 if (sub_artnet->startUniverse <= e->universe and (sub_artnet->endUniverse - 1) >= e->universe)
                 {
                     sub_artnet->handleUniverse(e->universe, (uint8_t *)e->pb->payload, e->pb->len);
@@ -334,7 +334,7 @@ subArtnet::~subArtnet()
 
 void subArtnet::handleUniverse(int current_uni, uint8_t *payload, size_t length)
 {
-
+//long time2,time1;
     if(current_uni == startUniverse)
     {
         tmp_len = 0;
@@ -345,8 +345,19 @@ void subArtnet::handleUniverse(int current_uni, uint8_t *payload, size_t length)
         new_frame = true;
         if(frame_disp)
         {
-            xQueueSend(_show_queue[subArtnetNum], &data, portMAX_DELAY);
-            frame_disp= false; 
+            frame_disp= false;
+            nb_frames++;
+           // xQueueSend(_show_queue[subArtnetNum], &data, portMAX_DELAY);
+           if (frameCallback)
+                frameCallback(data);
+        if ((nb_frames) % NB_FRAMES_DELTA == 0)
+        {
+            time2 =millis();
+            ESP_LOGI("ARTNETESP32", "SUBARTNET:%d frames fully received:%d frames lost:%d  delta:%d percentage lost:%.2f  fps: %.2f nb frame 'too fast': ", subArtnetNum, nb_frames, nb_frames_lost - 1, nb_frames_lost - previous_lost, (float)(100 * (nb_frames_lost - 1)) / (nb_frames_lost + nb_frames - 1), (float)(1000 * NB_FRAMES_DELTA / ((time2 - time1) / 1)));
+            time1 = time2;
+            previous_lost = nb_frames_lost;
+        }
+            
         }
         previousUniverse = current_uni;
         memcpy(offset, payload + ART_DMX_START, nbDataPerUniverse);
