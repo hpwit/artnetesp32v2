@@ -20,9 +20,9 @@ int pins[16]={2,4,5,12,13,14,15,17,16,19,21,22,23,25,26};
 
 artnetESP32V2 artnet=artnetESP32V2();
 I2SClocklessLedDriver driver;
-  void displayfunction(subArtnet *subartnet){
+  void displayfunction(uint8_t * data){
 
-     driver.showPixels(NO_WAIT,subartnet->data);
+     driver.showPixels(NO_WAIT,data);
 }
 
 void setup() {
