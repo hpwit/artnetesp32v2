@@ -23,6 +23,11 @@ struct netif;
 #define ART_DMX_START 18
 #define BUFFER_SIZE 512
 #define MAX_SUBARTNET 20
+#define NB_MAX_BUFFER 4
+#ifndef _USING_QUEUES
+#define _USING_QUEUES 1
+#endif
+
 
 class subArtnet
 {
@@ -39,17 +44,22 @@ public:
   bool new_frame = false;
   bool frame_disp = false;
   int subArtnetNum;
+  uint32_t _nb_data;
   long time1, time2;
   uint8_t *offset, *offset2;
+
  
   volatile xSemaphoreHandle subArtnet_sem = NULL;
   subArtnet(int star_universe, uint32_t nb_data, uint32_t nb_data_per_universe);
   void createBuffers(uint8_t *leds);
   void _initialize(int star_universe, uint32_t nb_data, uint32_t nb_data_per_universe, uint8_t *leds);
   ~subArtnet();
-  void handleUniverse(int currenbt_uni, uint8_t *payload, size_t len);
+ void handleUniverse(int currenbt_uni, uint8_t *payload, size_t len);
   uint8_t *getData();
   void setFrameCallback(void (*fptr)(uint8_t *data));
+   bool _using_queues;
+
+
 };
 
 // typedef subArtnet_h *subArtnet;
@@ -104,6 +114,11 @@ public:
       subArtnets[numSubArtnet] = subart;
       subart->subArtnetNum = numSubArtnet;
       numSubArtnet++;
+      #ifdef _USING_QUEUES
+      subart->_using_queues = true;
+      #else
+      subart->_using_queues = false;
+      #endif
       return true;
     }
     else
@@ -123,8 +138,13 @@ public:
       subArtnets[numSubArtnet]->_initialize(star_universe, nb_data, nb_data_per_universe, leds);
       subArtnets[numSubArtnet]->subArtnetNum = numSubArtnet;
       subArtnets[numSubArtnet]->frameCallback = fptr;
-      numSubArtnet++;
-
+     
+      #if _USING_QUEUES == 1
+       subArtnets[numSubArtnet]->_using_queues = true;
+      #else
+       subArtnets[numSubArtnet]->_using_queues = false;
+      #endif
+       numSubArtnet++;
       return subArtnets[numSubArtnet - 1];
     }
     else
@@ -133,8 +153,13 @@ public:
     }
   }
 
+
+
   subArtnet *subArtnets[MAX_SUBARTNET];
   // static void _s_recv(void *arg, udp_pcb *upcb, pbuf *p, const ip_addr_t *addr, uint16_t port, struct netif * netif);
 };
+
+
+ 
 
 #endif

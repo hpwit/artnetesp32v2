@@ -24,9 +24,10 @@ extern "C"
 #ifndef NB_FRAMES_DELTA
 #define NB_FRAMES_DELTA 100
 #endif
-#define SUBARTNET_CORE 0
-#define CALLBACK_CORE 0
 
+#define SUBARTNET_CORE 0
+#define CALLBACK_CORE 1
+//#define _USING_QUEUES
 #define UDP_MUTEX_LOCK()   // xSemaphoreTake(_lock, portMAX_DELAY)
 #define UDP_MUTEX_UNLOCK() // xSemaphoreGive(_lock)
 typedef struct
@@ -229,17 +230,19 @@ static void _udp_task_subrarnet_handle(void *pvParameters)
 {
     subArtnet *subartnet = (subArtnet *)pvParameters;
     uint8_t *data = NULL;
+     ESP_LOGV("ARTNETESP32","_udp_task_subrarnet_handle set on core %d",xPortGetCoreID() );
     for (;;)
     {
         if (xQueueReceive(_show_queue[subartnet->subArtnetNum], &data, portMAX_DELAY) == pdTRUE)
         {
-            subartnet->nb_frames++;
+            //subartnet->nb_frames++;
 
             // ESP_LOGD("ARTNETESP32", "Queue disp:%d\n",10-uxQueueSpacesAvailable( _show_queue[subartnet->subArtnetNum] ));
            long t1=ESP.getCycleCount();
             if (subartnet->frameCallback)
                 subartnet->frameCallback(data);
             long t2=ESP.getCycleCount()-t1;
+             #if CORE_DEBUG_LEVEL>=2
             if(10-uxQueueSpacesAvailable( _show_queue[subartnet->subArtnetNum])>0 )
                 {
                      ESP_LOGD("ARTNETESP32","encore %d Frame:%d %d" ,10-uxQueueSpacesAvailable( _show_queue[subartnet->subArtnetNum]),subartnet->nb_frames,t2/240000);
@@ -248,7 +251,8 @@ static void _udp_task_subrarnet_handle(void *pvParameters)
                     //vTaskDelay(30-2*t2/240000-1);
                  //  vTaskDelay(5);
                 }
-        }
+                #endif      
+              }
         if ((subartnet->nb_frames) % NB_FRAMES_DELTA == 0)
         {
             subartnet->time2 =millis();
@@ -259,82 +263,8 @@ static void _udp_task_subrarnet_handle(void *pvParameters)
     }
 }
 
-subArtnet::subArtnet(int star_universe, uint32_t nb_data, uint32_t nb_data_per_universe)
+ void subArtnet::handleUniverse(int current_uni, uint8_t *payload, size_t length)
 {
-    _initialize(star_universe, nb_data, nb_data_per_universe, NULL);
-}
-
-void subArtnet::createBuffers(uint8_t *leds)
-{
-    for (int buffnum = 0; buffnum < NB_MAX_BUFFER; buffnum++)
-    {
-        buffers[buffnum] = (uint8_t *)calloc((nbDataPerUniverse)*nbNeededUniverses + 8 + BUFFER_SIZE, 1);
-        if (buffers[buffnum] == NULL)
-        {
-            ESP_LOGI("ARTNETESP32", "impossible to create the buffer %d", buffnum);
-            if (leds != NULL)
-            {
-                buffers[buffnum] = leds;
-                ESP_LOGI("ARTNETESP32", "using leds array as  buffer %d", buffnum);
-                nbOfBuffers = buffnum + 1;
-                return;
-            }
-            else
-            {
-                nbOfBuffers = buffnum;
-                ESP_LOGI("ARTNETESP32", "nb total of buffers:%d", nbOfBuffers);
-
-                return;
-            }
-        }
-        else
-        {
-            ESP_LOGI("ARTNETESP32", "Creation of  buffer %d", buffnum);
-
-            nbOfBuffers = buffnum + 1;
-        }
-        memset(buffers[buffnum], 0, (nbDataPerUniverse)*nbNeededUniverses + 8 + BUFFER_SIZE);
-    }
-    ESP_LOGI("ARTNETESP32", "nb total of buffers:%d", nbOfBuffers);
-}
-
-void subArtnet::_initialize(int star_universe, uint32_t nb_data, uint32_t nb_data_per_universe, uint8_t *leds)
-{
-    nb_frames = 0;
-    nb_frame_double = 0;
-    nb_frames_lost = 0;
-    previous_lost = 0;
-    previousUniverse = 99;
-     new_frame = false;
-
-    nbDataPerUniverse = nb_data_per_universe;
-    startUniverse = star_universe;
-    nbNeededUniverses = nb_data / nbDataPerUniverse;
-    if (nbNeededUniverses * nbDataPerUniverse < nb_data)
-    {
-        nbNeededUniverses++;
-    }
-    len = nb_data;
-    endUniverse = startUniverse + nbNeededUniverses;
-
-    ESP_LOGI("ARTNETESP32", "Initialize subArtnet Start Universe: %d  end Universe: %d, universes %d", startUniverse, endUniverse - 1, nbNeededUniverses);
-    createBuffers(leds);
-    currentframenumber = 0;
-    offset = buffers[0];
-   // new_frame = false;
-}
-
-subArtnet::~subArtnet()
-{
-    if (buffers[0] != NULL)
-        free(buffers[0]);
-    if (buffers[1] != NULL)
-        free(buffers[1]);
-}
-
-void subArtnet::handleUniverse(int current_uni, uint8_t *payload, size_t length)
-{
-//long time2,time1;
     if(current_uni == startUniverse)
     {
         tmp_len = 0;
@@ -347,17 +277,27 @@ void subArtnet::handleUniverse(int current_uni, uint8_t *payload, size_t length)
         {
             frame_disp= false;
             nb_frames++;
-           // xQueueSend(_show_queue[subArtnetNum], &data, portMAX_DELAY);
+              memset(data+_nb_data+3,10,3);
+            if(_using_queues==true)
+            {
+                xQueueSend(_show_queue[subArtnetNum], &data, portMAX_DELAY);
+            }
+          else 
+          {
            if (frameCallback)
+           {
                 frameCallback(data);
-        if ((nb_frames) % NB_FRAMES_DELTA == 0)
-        {
-            time2 =millis();
-            ESP_LOGI("ARTNETESP32", "SUBARTNET:%d frames fully received:%d frames lost:%d  delta:%d percentage lost:%.2f  fps: %.2f nb frame 'too fast': ", subArtnetNum, nb_frames, nb_frames_lost - 1, nb_frames_lost - previous_lost, (float)(100 * (nb_frames_lost - 1)) / (nb_frames_lost + nb_frames - 1), (float)(1000 * NB_FRAMES_DELTA / ((time2 - time1) / 1)));
-            time1 = time2;
-            previous_lost = nb_frames_lost;
-        }
-            
+           }
+               #if CORE_DEBUG_LEVEL>=2
+                    if ((nb_frames) % NB_FRAMES_DELTA == 0)
+                    {
+                        time2 =millis();
+                        ESP_LOGI("ARTNETESP32", "SUBARTNET:%d frames fully received:%d frames lost:%d  delta:%d percentage lost:%.2f  fps: %.2f ", subArtnetNum, nb_frames, nb_frames_lost - 1, nb_frames_lost - previous_lost, (float)(100 * (nb_frames_lost - 1)) / (nb_frames_lost + nb_frames - 1), (float)(1000 * NB_FRAMES_DELTA / ((time2 - time1) / 1)));
+                        time1 = time2;
+                        previous_lost = nb_frames_lost;
+                    }
+            }
+            #endif
         }
         previousUniverse = current_uni;
         memcpy(offset, payload + ART_DMX_START, nbDataPerUniverse);
@@ -387,57 +327,85 @@ void subArtnet::handleUniverse(int current_uni, uint8_t *payload, size_t length)
         new_frame = false;
     }
 
+}
 
-/*
 
-    if (currenbt_uni == startUniverse)
+subArtnet::subArtnet(int star_universe, uint32_t nb_data, uint32_t nb_data_per_universe)
+{
+    _initialize(star_universe, nb_data, nb_data_per_universe, NULL);
+}
+
+void subArtnet::createBuffers(uint8_t *leds)
+{
+    for (int buffnum = 0; buffnum < NB_MAX_BUFFER; buffnum++)
     {
-        tmp_len = 0;
-        if (new_frame == false)
+        buffers[buffnum] = (uint8_t *)calloc((nbDataPerUniverse)*nbNeededUniverses + 8 + BUFFER_SIZE, 1);
+        if (buffers[buffnum] == NULL)
         {
-            nb_frames_lost++;
-        }
-        //new_frame = true;
-        previousUniverse = current_uni;
-        memcpy(offset, payload + ART_DMX_START, nbDataPerUniverse);
-        tmp_len = (length - ART_DMX_START < nbDataPerUniverse) ? (length - ART_DMX_START) : nbDataPerUniverse;
-        if (startUniverse == endUniverse - 1)
-        {
-            //nb_frames++;
-            data = offset;
-            xQueueSend(_show_queue[subArtnetNum], &data, portMAX_DELAY);
-            currentframenumber = (currentframenumber + 1) % nbOfBuffers;
-            offset = buffers[currentframenumber];
-        }
-    }
-    else
-    {
-        if (currenbt_uni == previousUniverse + 1)
-        {
-            if (new_frame)
+            ESP_LOGI("ARTNETESP32", "impossible to create the buffer %d", buffnum);
+            if (leds != NULL)
             {
-                previousUniverse = currenbt_uni;
-                memcpy(offset + tmp_len, payload + ART_DMX_START, nbDataPerUniverse);
-                tmp_len += (length - ART_DMX_START < nbDataPerUniverse) ? (length - ART_DMX_START) : nbDataPerUniverse;
-                if (currenbt_uni == endUniverse - 1)
-                {
-                   // nb_frames++;
-                    data = offset;
-                    currentframenumber = (currentframenumber + 1) % nbOfBuffers;
-                    offset = buffers[currentframenumber];
-                    xQueueSend(_show_queue[subArtnetNum], &data, portMAX_DELAY);
+                buffers[buffnum] = leds;
+                ESP_LOGI("ARTNETESP32", "using leds array as  buffer %d", buffnum);
+              
+                nbOfBuffers = buffnum + 1;
+                return;
+            }
+            else
+            {
+                nbOfBuffers = buffnum;
+                ESP_LOGI("ARTNETESP32", "nb total of buffers:%d", nbOfBuffers);
 
-                }
+                return;
             }
         }
         else
         {
-            new_frame = false;
+            ESP_LOGI("ARTNETESP32", "Creation of  buffer %d", buffnum);
+           
+            nbOfBuffers = buffnum + 1;
         }
+        memset(buffers[buffnum], 0, (nbDataPerUniverse)*nbNeededUniverses + 8 + BUFFER_SIZE);
     }
-
-    */
+    ESP_LOGI("ARTNETESP32", "nb total of buffers:%d", nbOfBuffers);
 }
+
+void subArtnet::_initialize(int star_universe, uint32_t nb_data, uint32_t nb_data_per_universe, uint8_t *leds)
+{
+    nb_frames = 0;
+    nb_frame_double = 0;
+    nb_frames_lost = 0;
+    previous_lost = 0;
+    previousUniverse = 99;
+     new_frame = false;
+     _nb_data=nb_data;
+
+    nbDataPerUniverse = nb_data_per_universe;
+    startUniverse = star_universe;
+    nbNeededUniverses = nb_data / nbDataPerUniverse;
+    if (nbNeededUniverses * nbDataPerUniverse < nb_data)
+    {
+        nbNeededUniverses++;
+    }
+    len = nb_data;
+    endUniverse = startUniverse + nbNeededUniverses;
+
+    ESP_LOGI("ARTNETESP32", "Initialize subArtnet Start Universe: %d  end Universe: %d, universes %d", startUniverse, endUniverse - 1, nbNeededUniverses);
+    createBuffers(leds);
+    currentframenumber = 0;
+    offset = buffers[0];
+   // new_frame = false;
+}
+
+subArtnet::~subArtnet()
+{
+    if (buffers[0] != NULL)
+        free(buffers[0]);
+    if (buffers[1] != NULL)
+        free(buffers[1]);
+}
+
+
 
 uint8_t *subArtnet::getData()
 {
@@ -553,13 +521,18 @@ bool artnetESP32V2::listen(const ip_addr_t *addr, uint16_t port)
         return false;
     }
     char mess[60];
-    for (int subartnet = 0; subartnet < numSubArtnet; subartnet++)
-    {
-        memset(mess, 0, 60);
-        sprintf(mess, "handle_subartnet_%d", subartnet);
-        subArtnets[subartnet]->subArtnet_sem = xSemaphoreCreateBinary();
-        xTaskCreateUniversal(_udp_task_subrarnet_handle, mess, 4096, subArtnets[subartnet], 3, NULL, CALLBACK_CORE);
-    }
+
+        for (int subartnet = 0; subartnet < numSubArtnet; subartnet++)
+        {
+            if( subArtnets[subartnet]->_using_queues ==true)
+            {
+                memset(mess, 0, 60);
+                sprintf(mess, "handle_subartnet_%d", subartnet);
+                subArtnets[subartnet]->subArtnet_sem = xSemaphoreCreateBinary();
+                xTaskCreateUniversal(_udp_task_subrarnet_handle, mess, 4096, subArtnets[subartnet], 3, NULL, CALLBACK_CORE);
+            }
+        }
+   
     if (!_init())
     {
         return false;
