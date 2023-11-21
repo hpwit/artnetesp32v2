@@ -17,6 +17,7 @@ extern "C"
 
 #include "lwip/priv/tcpip_priv.h"
 
+ #include "artpoll.h"
 #define BUFFER_SIZE 10
 #define ART_DMX_START 18
 #define NB_MAX_BUFFER 10
@@ -202,6 +203,9 @@ static bool _udp_task_post(pbuf *pb)
     }
     e->pb = pb;
     e->universe = *((uint8_t *)(e->pb->payload) + 14);
+    
+     //ESP_LOGV("TAG", "opcode: %s",(char *)(e->pb->payload));
+
     if (xQueueSend(_udp_queue, &e, portMAX_DELAY) != pdPASS)
     {
         free((void *)(e));
@@ -217,12 +221,33 @@ static void _udp_recv(void *arg, udp_pcb *pcb, pbuf *pb, const ip_addr_t *addr, 
         pbuf *this_pb = pb;
         pb = pb->next;
         this_pb->next = NULL;
+    if(*((uint16_t *)(this_pb->payload) + 4)==0x2100)
+    {
+           // ESP_LOGV("ATAG","%s",ip4addr_ntoa(&addr->u_addr.ip4));
+            ESP_LOGV("ATAG","%d",this_pb->ref);
 
-        artnetESP32V2 *artnet = ((artnetESP32V2 *)arg);
+        IPAddress my_ip = WiFi.localIP();
+        ESP_LOGV("tag","%d %d %d %d",my_ip[0],my_ip[1],my_ip[2],my_ip[3]);
+    ESP_LOGV("TAG", "opcode: %x ",*((uint16_t *)(this_pb->payload) + 4));//,*((uint8_t *)(this_pb->pb->payload) + 15),*((uint8_t *)(e->pb->payload) + 16),*((uint8_t *)(e->pb->payload) + 17),*((uint8_t *)(e->pb->payload) + 18));
+    poll_reply(pcb,addr);
+     pbuf_free(this_pb);
+    //return;
+    }
+    else
+    {
+       // artnetESP32V2 *artnet = ((artnetESP32V2 *)arg);
+        if(*((uint16_t *)(this_pb->payload) + 4)==0x5000)
+        {
         if (!_udp_task_post(this_pb))
         {
             pbuf_free(this_pb);
         }
+        }
+        else
+        {
+             pbuf_free(this_pb);
+        }
+    }
     }
 }
 
@@ -585,3 +610,8 @@ artnetESP32V2::operator bool()
 {
     return true;
 }
+
+  void artnetESP32V2::setNodeName(String s)
+  {
+    short_name=s;
+  }

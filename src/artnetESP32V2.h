@@ -1,17 +1,22 @@
 #ifndef ARTNETESP32_H
 #define ARTNETESP32_H
-
+#include "WiFi.h"
 #include "IPAddress.h"
 #include "IPv6Address.h"
 #include "Print.h"
 #include "Stream.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include <functional>
+   #include "string.h"
 extern "C"
 {
 #include "esp_netif.h"
 #include "freertos/queue.h"
 #include "freertos/semphr.h"
 }
+
+#include "lwip/priv/tcpip_priv.h"
 
 // CONFIG_UDP_RECVMBOX_SIZE=6
 // CONFIG_LWIP_MAX_UDP_PCBS
@@ -24,10 +29,15 @@ struct netif;
 #define BUFFER_SIZE 512
 #define MAX_SUBARTNET 20
 #define NB_MAX_BUFFER 4
-#ifndef _USING_QUEUES
+#ifndef  _USING_QUEUES
 #define _USING_QUEUES 1
 #endif
-
+#ifndef SUBARTNET_CORE
+#define SUBARTNET_CORE 0
+#endif
+#ifndef CALLBACK_CORE
+#define CALLBACK_CORE 1
+#endif
 
 class subArtnet
 {
@@ -36,6 +46,7 @@ public:
   uint8_t *buffers[10];
   uint8_t currentframenumber;
   uint8_t nbOfBuffers = 2;
+  uint8_t nbBufferled;
   uint8_t *data;
   int previousUniverse;
   size_t len;
@@ -47,6 +58,7 @@ public:
   uint32_t _nb_data;
   long time1, time2;
   uint8_t *offset, *offset2;
+  uint8_t _callback_core= CALLBACK_CORE;
 
  
   volatile xSemaphoreHandle subArtnet_sem = NULL;
@@ -81,6 +93,7 @@ public:
   uint8_t *buffers[10];
   uint8_t currentframenumber;
   uint8_t nbOfBuffers = 2;
+  uint8_t _udp_task_core = SUBARTNET_CORE;
 
   uint8_t *currentframe;
   uint32_t pixels_per_universe, nbPixels, nbPixelsPerUniverse, nbNeededUniverses, startuniverse, enduniverse, nbframes, nbframeslost;
@@ -114,6 +127,7 @@ public:
       subArtnets[numSubArtnet] = subart;
       subart->subArtnetNum = numSubArtnet;
       numSubArtnet++;
+      subart->_callback_core= CALLBACK_CORE;
       #ifdef _USING_QUEUES
       subart->_using_queues = true;
       #else
@@ -132,13 +146,14 @@ public:
   }
   subArtnet *addSubArtnet(int star_universe, uint32_t nb_data, uint32_t nb_data_per_universe, void (*fptr)(uint8_t *data), uint8_t *leds)
   {
+    _udp_task_core = SUBARTNET_CORE;
     if (numSubArtnet < MAX_SUBARTNET)
     {
       subArtnets[numSubArtnet] = (subArtnet *)calloc(sizeof(subArtnet), 1);
       subArtnets[numSubArtnet]->_initialize(star_universe, nb_data, nb_data_per_universe, leds);
       subArtnets[numSubArtnet]->subArtnetNum = numSubArtnet;
       subArtnets[numSubArtnet]->frameCallback = fptr;
-     
+     subArtnets[numSubArtnet]->_callback_core= CALLBACK_CORE;
       #if _USING_QUEUES == 1
        subArtnets[numSubArtnet]->_using_queues = true;
       #else
@@ -153,7 +168,7 @@ public:
     }
   }
 
-
+  void setNodeName(String s);
 
   subArtnet *subArtnets[MAX_SUBARTNET];
   // static void _s_recv(void *arg, udp_pcb *upcb, pbuf *p, const ip_addr_t *addr, uint16_t port, struct netif * netif);
