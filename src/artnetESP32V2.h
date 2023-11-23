@@ -51,7 +51,11 @@ public:
   int previousUniverse;
   size_t len;
   size_t tmp_len;
+  #ifdef ARTNET_CALLBACK_SUBARTNET
+    void (*frameCallback)(subArtnet *subartnet);
+  #else
   void (*frameCallback)(uint8_t *data);
+  #endif
   bool new_frame = false;
   bool frame_disp = false;
   int subArtnetNum;
@@ -68,9 +72,30 @@ public:
   ~subArtnet();
  void handleUniverse(int currenbt_uni, uint8_t *payload, size_t len);
   uint8_t *getData();
-  void setFrameCallback(void (*fptr)(uint8_t *data));
-   bool _using_queues;
+   #ifdef ARTNET_CALLBACK_SUBARTNET
+    void setFrameCallback(  void (*fptr)(subArtnet * subartnet))
+  {
+     frameCallback = fptr;
+  }
+  #else
+   void setFrameCallback(void (*fptr)(uint8_t *data))
+  {
+    frameCallback = fptr;
+  }
+  #endif
 
+   bool _using_queues;
+  #ifdef ARTNET_CALLBACK_SUBARTNET
+ void executeCallback()
+  {
+    frameCallback(this);
+  } 
+#else
+ void executeCallback()
+  {
+    frameCallback(data);
+  } 
+#endif
 
 };
 
@@ -168,6 +193,7 @@ public:
     }
   }
 
+ 
   void setNodeName(String s);
 
   subArtnet *subArtnets[MAX_SUBARTNET];

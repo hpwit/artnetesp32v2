@@ -226,9 +226,9 @@ static void _udp_recv(void *arg, udp_pcb *pcb, pbuf *pb, const ip_addr_t *addr, 
            // ESP_LOGV("ATAG","%s",ip4addr_ntoa(&addr->u_addr.ip4));
             ESP_LOGV("ATAG","%d",this_pb->ref);
 
-        IPAddress my_ip = WiFi.localIP();
-        ESP_LOGV("tag","%d %d %d %d",my_ip[0],my_ip[1],my_ip[2],my_ip[3]);
-    ESP_LOGV("TAG", "opcode: %x ",*((uint16_t *)(this_pb->payload) + 4));//,*((uint8_t *)(this_pb->pb->payload) + 15),*((uint8_t *)(e->pb->payload) + 16),*((uint8_t *)(e->pb->payload) + 17),*((uint8_t *)(e->pb->payload) + 18));
+       // IPAddress my_ip = WiFi.localIP();
+        //ESP_LOGV("tag","%d %d %d %d",my_ip[0],my_ip[1],my_ip[2],my_ip[3]);
+    //ESP_LOGV("TAG", "opcode: %x ",*((uint16_t *)(this_pb->payload) + 4));//,*((uint8_t *)(this_pb->pb->payload) + 15),*((uint8_t *)(e->pb->payload) + 16),*((uint8_t *)(e->pb->payload) + 17),*((uint8_t *)(e->pb->payload) + 18));
     poll_reply(pcb,addr);
      pbuf_free(this_pb);
     //return;
@@ -265,7 +265,8 @@ static void _udp_task_subrarnet_handle(void *pvParameters)
            #endif
             subartnet->nb_frames++;
             if (subartnet->frameCallback)
-                subartnet->frameCallback(data);
+                //subartnet->frameCallback(data);
+                subartnet->executeCallback();
             /*if(NB_MAX_BUFFER-uxQueueSpacesAvailable( _show_queue[subartnet->subArtnetNum])>0 )
                 {
                     vTaskDelay(10);
@@ -316,7 +317,8 @@ static void _udp_task_subrarnet_handle(void *pvParameters)
             nb_frames++;
            if (frameCallback)
            {
-                frameCallback(data);
+            executeCallback();
+                //frameCallback(data);
            }
                #if CORE_DEBUG_LEVEL>=2
                     if ((nb_frames) % NB_FRAMES_DELTA == 0)
@@ -451,10 +453,7 @@ void subArtnet::setFrameCallback(  void (*fptr)(uint8_t * data))
 
 */
 
-void subArtnet::setFrameCallback(void (*fptr)(uint8_t *data))
-{
-    frameCallback = fptr;
-}
+
 
 artnetESP32V2::artnetESP32V2()
 {

@@ -1,5 +1,11 @@
    #ifndef ARTNETESP32POLL_H
 #define ARTNETESP32POLL_H
+#define ARTNET_ETHERNET 0x001
+#define ARTNET_ETH 0x002
+#define ARTNET_WIFI 0x004
+#ifndef ARTNET_CONNECT_MODE 
+#define ARTNET_CONNECT_MODE ARTNET_WIFI
+#endif
    #include "string.h"
     constexpr uint16_t DEFAULT_PORT {6454};  // 0x1936
 
@@ -62,9 +68,21 @@ void poll_reply(udp_pcb *pcb,const ip_addr_t *addr) {
             for (size_t i = 0; i < ID_LENGTH; i++) r.id[i] = static_cast<uint8_t>(ID[i]);
             r.op_code_l = 0 ; //((uint16_t)OpCode::PollReply >> 0) & 0x00FF;
             r.op_code_h = 0x21; //((uint16_t)OpCode::PollReply >> 8) & 0x00FF;
+            #if ARTNET_CONNECT_MODE == ARTNET_ETHERNET
+                        IPAddress my_ip = Ethernet.localIP();
+            IPAddress my_subnet = Ethernet.subnetMask();
+             Ethernet.macAddress(r.mac);
+            #endif
+            #if ARTNET_CONNECT_MODE == ARTNET_ETH
+            IPAddress my_ip = ETH.localIP();
+            IPAddress my_subnet = ETH.subnetMask();
+             ETH.macAddress(r.mac);
+             #endif
+          #if ARTNET_CONNECT_MODE == ARTNET_WIFI
             IPAddress my_ip = WiFi.localIP();
             IPAddress my_subnet = WiFi.subnetMask();
              WiFi.macAddress(r.mac);
+             #endif
             for (size_t i = 0; i < 4; ++i) r.ip[i] = my_ip[i];
             r.port_l = (DEFAULT_PORT >> 0) & 0xFF;
             r.port_h = (DEFAULT_PORT >> 8) & 0xFF;
