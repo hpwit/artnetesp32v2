@@ -165,6 +165,7 @@ public:
       return false;
     }
   }
+    #ifndef ARTNET_CALLBACK_SUBARTNET
   subArtnet *addSubArtnet(int star_universe, uint32_t nb_data, uint32_t nb_data_per_universe, void (*fptr)(uint8_t *data))
   {
     return addSubArtnet(star_universe, nb_data, nb_data_per_universe, fptr, NULL);
@@ -192,7 +193,35 @@ public:
       return NULL;
     }
   }
-
+#else
+subArtnet *addSubArtnet(int star_universe, uint32_t nb_data, uint32_t nb_data_per_universe, void (*fptr)(subArtnet *subartnet))
+  {
+    return addSubArtnet(star_universe, nb_data, nb_data_per_universe, fptr, NULL);
+  }
+  subArtnet *addSubArtnet(int star_universe, uint32_t nb_data, uint32_t nb_data_per_universe, void (*fptr)(subArtnet *subartnet), uint8_t *leds)
+  {
+    _udp_task_core = SUBARTNET_CORE;
+    if (numSubArtnet < MAX_SUBARTNET)
+    {
+      subArtnets[numSubArtnet] = (subArtnet *)calloc(sizeof(subArtnet), 1);
+      subArtnets[numSubArtnet]->_initialize(star_universe, nb_data, nb_data_per_universe, leds);
+      subArtnets[numSubArtnet]->subArtnetNum = numSubArtnet;
+      subArtnets[numSubArtnet]->frameCallback = fptr;
+     subArtnets[numSubArtnet]->_callback_core= CALLBACK_CORE;
+      #if _USING_QUEUES == 1
+       subArtnets[numSubArtnet]->_using_queues = true;
+      #else
+       subArtnets[numSubArtnet]->_using_queues = false;
+      #endif
+       numSubArtnet++;
+      return subArtnets[numSubArtnet - 1];
+    }
+    else
+    {
+      return NULL;
+    }
+  }
+#endif
  
   void setNodeName(String s);
 
