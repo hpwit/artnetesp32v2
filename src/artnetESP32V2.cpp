@@ -266,7 +266,11 @@ static void _udp_task_subrarnet_handle(void *pvParameters)
             subartnet->nb_frames++;
             if (subartnet->frameCallback)
                 //subartnet->frameCallback(data);
-                subartnet->executeCallback();
+                          if( subartnet->subartnetglag)
+                 subartnet->frameCallback((void *)subartnet);
+            else
+             subartnet->frameCallback((void *)data);
+                //subartnet->_executeCallback();
             /*if(NB_MAX_BUFFER-uxQueueSpacesAvailable( _show_queue[subartnet->subArtnetNum])>0 )
                 {
                     vTaskDelay(10);
@@ -317,8 +321,11 @@ static void _udp_task_subrarnet_handle(void *pvParameters)
             nb_frames++;
            if (frameCallback)
            {
-            executeCallback();
-                //frameCallback(data);
+            if(subartnetglag)
+                frameCallback((void *)this);
+            else
+            frameCallback((void*)data);
+
            }
                #if CORE_DEBUG_LEVEL>=2
                     if ((nb_frames) % NB_FRAMES_DELTA == 0)

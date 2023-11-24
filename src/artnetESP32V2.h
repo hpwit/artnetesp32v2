@@ -51,11 +51,12 @@ public:
   int previousUniverse;
   size_t len;
   size_t tmp_len;
-  #ifdef ARTNET_CALLBACK_SUBARTNET
-    void (*frameCallback)(subArtnet *subartnet);
-  #else
-  void (*frameCallback)(uint8_t *data);
-  #endif
+  bool subartnetglag;
+  //#ifdef ARTNET_CALLBACK_SUBARTNET
+    void (*frameCallback)(void *params);
+  //#else
+  //void (*frameCallback)(uint8_t *data);
+  //#endif
   bool new_frame = false;
   bool frame_disp = false;
   int subArtnetNum;
@@ -72,30 +73,17 @@ public:
   ~subArtnet();
  void handleUniverse(int currenbt_uni, uint8_t *payload, size_t len);
   uint8_t *getData();
-   #ifdef ARTNET_CALLBACK_SUBARTNET
-    void setFrameCallback(  void (*fptr)(subArtnet * subartnet))
+  
+void setFrameCallback(  void (*fptr)(void * params))
   {
+
      frameCallback = fptr;
   }
-  #else
-   void setFrameCallback(void (*fptr)(uint8_t *data))
-  {
-    frameCallback = fptr;
-  }
-  #endif
 
+
+   
    bool _using_queues;
-  #ifdef ARTNET_CALLBACK_SUBARTNET
- void executeCallback()
-  {
-    frameCallback(this);
-  } 
-#else
- void executeCallback()
-  {
-    frameCallback(data);
-  } 
-#endif
+
 
 };
 
@@ -165,7 +153,7 @@ public:
       return false;
     }
   }
-    #ifndef ARTNET_CALLBACK_SUBARTNET
+  /*// #ifndef ARTNET_CALLBACK_SUBARTNET
   subArtnet *addSubArtnet(int star_universe, uint32_t nb_data, uint32_t nb_data_per_universe, void (*fptr)(uint8_t *data))
   {
     return addSubArtnet(star_universe, nb_data, nb_data_per_universe, fptr, NULL);
@@ -185,6 +173,8 @@ public:
       #else
        subArtnets[numSubArtnet]->_using_queues = false;
       #endif
+subArtnets[numSubArtnet]->subartnetglag = false;
+
        numSubArtnet++;
       return subArtnets[numSubArtnet - 1];
     }
@@ -193,12 +183,12 @@ public:
       return NULL;
     }
   }
-#else
-subArtnet *addSubArtnet(int star_universe, uint32_t nb_data, uint32_t nb_data_per_universe, void (*fptr)(subArtnet *subartnet))
+#else*/
+subArtnet *addSubArtnet(int star_universe, uint32_t nb_data, uint32_t nb_data_per_universe, void (*fptr)(void *params))
   {
     return addSubArtnet(star_universe, nb_data, nb_data_per_universe, fptr, NULL);
   }
-  subArtnet *addSubArtnet(int star_universe, uint32_t nb_data, uint32_t nb_data_per_universe, void (*fptr)(subArtnet *subartnet), uint8_t *leds)
+  subArtnet *addSubArtnet(int star_universe, uint32_t nb_data, uint32_t nb_data_per_universe, void (*fptr)(void *params), uint8_t *leds)
   {
     _udp_task_core = SUBARTNET_CORE;
     if (numSubArtnet < MAX_SUBARTNET)
@@ -213,6 +203,7 @@ subArtnet *addSubArtnet(int star_universe, uint32_t nb_data, uint32_t nb_data_pe
       #else
        subArtnets[numSubArtnet]->_using_queues = false;
       #endif
+      subArtnets[numSubArtnet]->subartnetglag = true;
        numSubArtnet++;
       return subArtnets[numSubArtnet - 1];
     }
@@ -221,7 +212,7 @@ subArtnet *addSubArtnet(int star_universe, uint32_t nb_data, uint32_t nb_data_pe
       return NULL;
     }
   }
-#endif
+//#endif
  
   void setNodeName(String s);
 
