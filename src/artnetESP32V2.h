@@ -25,6 +25,13 @@ extern "C"
 struct udp_pcb;
 struct pbuf;
 struct netif;
+
+typedef struct
+{
+    pbuf *pb;
+    int universe;
+} lwip_event_packet_t;
+//struct lwip_event_packet_t;
 #define ART_DMX_START 18
 #define BUFFER_SIZE 512
 #define MAX_SUBARTNET 20
@@ -71,7 +78,7 @@ public:
   void createBuffers(uint8_t *leds);
   void _initialize(int star_universe, uint32_t nb_data, uint32_t nb_data_per_universe, uint8_t *leds);
   ~subArtnet();
- void handleUniverse(int currenbt_uni, uint8_t *payload, size_t len);
+ void handleUniverse(lwip_event_packet_t *e);
   uint8_t *getData();
   
 void setFrameCallback(  void (*fptr)(void * params))

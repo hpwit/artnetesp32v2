@@ -309,7 +309,7 @@ static void _udp_task_subrarnet_handle(void *pvParameters)
         }
         new_frame = true;
         
-        if(frame_disp or nbNeededUniverses == 1)
+        if(frame_disp)
         {
             frame_disp= false;
             

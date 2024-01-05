@@ -106,11 +106,6 @@ static err_t _udp_bind(struct udp_pcb *pcb, const ip_addr_t *addr, u16_t port)
     return msg.err;
 }
 
-typedef struct
-{
-    pbuf *pb;
-    int universe;
-} lwip_event_packet_t;
 
 static xQueueHandle _udp_queue;
 static xQueueHandle _show_queue[MAX_SUBARTNET];
@@ -135,13 +130,16 @@ static void _udp_task_subrarnet(void *pvParameters)
                 free((void *)(e));
                 continue;
             }
+            e->pb->payload+=ART_DMX_START;
             for (int subArnetIndex = 0; subArnetIndex < artnet->numSubArtnet; subArnetIndex++)
             {
                 subArtnet *sub_artnet = (artnet->subArtnets)[subArnetIndex];
-               // ESP_LOGV("ARTNETESP32", " %d %d %d %d \n", subArnetIndex, (*sub_artnet).startUniverse, sub_artnet->startUniverse - 1, e->universe);
+                //ESP_LOGV("ARTNETESP32", " %d %d %d %d \n", subArnetIndex, (*sub_artnet).startUniverse, sub_artnet->startUniverse - 1, e->universe);
                 if (sub_artnet->startUniverse <= e->universe and (sub_artnet->endUniverse - 1) >= e->universe)
                 {
-                    sub_artnet->handleUniverse(e->universe, (uint8_t *)e->pb->payload, e->pb->len);
+                    e->pb->len=(e->pb->len - ART_DMX_START < sub_artnet->nbDataPerUniverse) ? (e->pb->len - ART_DMX_START) : sub_artnet->nbDataPerUniverse;
+                   
+                    sub_artnet->handleUniverse(e);
                     continue;
                 }
             }
@@ -204,7 +202,7 @@ static bool _udp_task_post(pbuf *pb)
     e->pb = pb;
     e->universe = *((uint8_t *)(e->pb->payload) + 14);
     
-     ESP_LOGV("TAG", "opcode: %s",(char *)(e->pb->payload));
+     //ESP_LOGV("TAG", "opcode: %s",(char *)(e->pb->payload));
 
     if (xQueueSend(_udp_queue, &e, portMAX_DELAY) != pdPASS)
     {
@@ -216,15 +214,17 @@ static bool _udp_task_post(pbuf *pb)
 
 static void _udp_recv(void *arg, udp_pcb *pcb, pbuf *pb, const ip_addr_t *addr, uint16_t port)
 {
+   
     while (pb != NULL)
     {
         pbuf *this_pb = pb;
         pb = pb->next;
         this_pb->next = NULL;
+       // Serial.printf("%x\n",*((uint16_t *)(this_pb->payload) + 14));
     if(*((uint16_t *)(this_pb->payload) + 4)==0x2100)
     {
            // ESP_LOGV("ATAG","%s",ip4addr_ntoa(&addr->u_addr.ip4));
-            ESP_LOGV("ATAG","%d",this_pb->ref);
+            //ESP_LOGV("ATAG","%d",this_pb->ref);
 
        // IPAddress my_ip = WiFi.localIP();
         //ESP_LOGV("tag","%d %d %d %d",my_ip[0],my_ip[1],my_ip[2],my_ip[3]);
@@ -235,6 +235,7 @@ static void _udp_recv(void *arg, udp_pcb *pcb, pbuf *pb, const ip_addr_t *addr, 
     }
     else
     {
+        
        // artnetESP32V2 *artnet = ((artnetESP32V2 *)arg);
         if(*((uint16_t *)(this_pb->payload) + 4)==0x5000)
         {
@@ -297,20 +298,26 @@ static void _udp_task_subrarnet_handle(void *pvParameters)
     }
 }
 
- void subArtnet::handleUniverse(int current_uni, uint8_t *payload, size_t length)
+ void subArtnet::handleUniverse(lwip_event_packet_t *e)
 {
-    if(current_uni == startUniverse)
+    if(e->universe == startUniverse)
     {
         
-        tmp_len = 0;
+        offset = buffers[currentframenumber];
+                  #if  CORE_DEBUG_LEVEL>=2
         if (new_frame == false)
         {
             nb_frames_lost++;
         }
+        #endif 
         new_frame = true;
         
-        if(frame_disp or nbNeededUniverses == 1)
+        if(frame_disp)
         {
+
+                data =  buffers[currentframenumber];
+        currentframenumber = (currentframenumber + 1) % nbOfBuffers;
+        offset = buffers[currentframenumber];
             frame_disp= false;
             
               
@@ -341,29 +348,31 @@ static void _udp_task_subrarnet_handle(void *pvParameters)
             }
             
         }
+        previousUniverse = startUniverse - 1;
+        /*
         previousUniverse = current_uni;
         memcpy(offset, payload + ART_DMX_START, nbDataPerUniverse);
         tmp_len = (length - ART_DMX_START < nbDataPerUniverse) ? (length - ART_DMX_START) : nbDataPerUniverse;
+        return;*/
+    }
+    if(!new_frame)
+    {
         return;
     }
-    if (current_uni == previousUniverse + 1)
+    if (e->universe  == previousUniverse + 1)
     {
-        if (new_frame)
-        {
-            previousUniverse = current_uni;
-            memcpy(offset + tmp_len, payload + ART_DMX_START, nbDataPerUniverse);
-            tmp_len += (length - ART_DMX_START < nbDataPerUniverse) ? (length - ART_DMX_START) : nbDataPerUniverse;
-            if (current_uni == endUniverse - 1)
+       
+            previousUniverse++;
+        memcpy(offset, e->pb->payload , e->pb->len);
+        offset += e->pb->len;
+            if (e->universe  == endUniverse - 1)
             {
                 // nb_frames++;
-                data = offset;
-                currentframenumber = (currentframenumber + 1) % nbOfBuffers;
-                offset = buffers[currentframenumber];
                 //memset(data+_nb_data+3,10,3);
                 frame_disp=true;
 
             }
-        }
+        
     }
     else
     {
