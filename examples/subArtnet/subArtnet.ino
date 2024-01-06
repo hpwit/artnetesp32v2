@@ -12,13 +12,13 @@ const char * password = "****";
 
 artnetESP32V2 artnet=artnetESP32V2();
 
-  void callbackfunction(uint8_t * data){
+  void callbackfunction(void *param){
    // Serial.printf("call back of subartnet  nd:%d size:%d\n",subartnet->subArtnetNum,subartnet->len);
     //let's do something wih the data
 
     }
 
-     void callbackfunction_2(uint8_t * data){
+     void callbackfunction_2(void *param){
     //Serial.printf("call back of other subartnet Artnumber:%d\n",subartnet->subArtnetNum);
     //let's do something wih the data
 
