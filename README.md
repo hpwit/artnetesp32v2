@@ -86,8 +86,8 @@ This is what most people will use to display artnet animations
 #define START_UNIVERSE 0
  artnetESP32V2 artnet=artnetESP32V2();
 
- void displayfunction(subArtnet *subartnet){
-
+ void displayfunction(void *param){
+      subArtnet *subartnet = (subArtnet *)param;
      driver.showPixels(NO_WAIT,subartnet->data);
 } 
 
@@ -122,6 +122,23 @@ if you  do this
   ```
 
 See the example `subArtnet.ino`
+
+#### Artnet pool
+You can define the name of the artnet node by using this function
+```C
+artnetESP32V2 artnet=artnetESP32V2();
+
+...
+
+artnet.setNodeName("name of the node");
+```
+
+### Optimization in case of only one subartnet
+If you are using only one sub artnet you can add this to optimize the execution
+```C
+#define UNIQUE_SUBARTNET
+#include "artnetESP32V2.h"
+```
 
 
 

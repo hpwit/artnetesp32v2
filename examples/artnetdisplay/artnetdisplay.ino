@@ -20,8 +20,8 @@ int pins[16]={2,4,5,12,13,14,15,17,16,19,21,22,23,25,26};
 
 artnetESP32V2 artnet=artnetESP32V2();
 I2SClocklessLedDriver driver;
-  void displayfunction(subArtnet *subartnet){
-
+  void displayfunction(void *param){
+    subArtnet *subartnet = (subArtnet *)param;
      driver.showPixels(NO_WAIT,subartnet->data);
 }
 
@@ -52,7 +52,7 @@ Serial.begin(2000000);
      * NUM_LEDS_PER_STRIP * NUMSTRIPS * NB_CHANNEL_PER_LED is the total number of channels needed here 3 channel per led (R,G,B)
      */ 
     artnet.addSubArtnet(START_UNIVERSE ,NUM_LEDS_PER_STRIP * NUMSTRIPS * NB_CHANNEL_PER_LED,UNIVERSE_SIZE_IN_CHANNEL ,&displayfunction);
-    
+    artnet.setNodeName("Arnet Node esp32");
      
     if(artnet.listen(6454)) {
         Serial.print("artnet Listening on IP: ");
